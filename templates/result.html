@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>纠错分析 - 工图智能纠错平台</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #dbeafe;
+            --primary-bg: #eff6ff;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --danger-bg: #fef2f2;
+            --warning: #d97706;
+            --warning-light: #fffbeb;
+            --warning-bg: #fffbeb;
+            --success: #16a34a;
+            --success-light: #f0fdf4;
+            --success-bg: #f0fdf4;
+            --info: #0284c7;
+            --info-light: #f0f9ff;
+            --info-bg: #f0f9ff;
+            --purple: #7c3aed;
+            --purple-light: #f5f3ff;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --surface-3: #f1f5f9;
+            --text-1: #0f172a;
+            --text-2: #475569;
+            --text-3: #94a3b8;
+            --border: #e2e8f0;
+            --border-lt: #f1f5f9;
+            --shadow-xs: 0 1px 2px rgba(0,0,0,.05);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,.08), 0 2px 4px -2px rgba(0,0,0,.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.04);
+            --r-xs: 3px;
+            --r-sm: 5px;
+            --r-md: 8px;
+            --r-lg: 12px;
+            --r-xl: 16px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            --hdr: 48px;
+            --ftr: 28px;
+            --sidebar-w: 380px;
+            --transition: .2s cubic-bezier(.4,0,.2,1);
+        }
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-2: #1e293b;
+            --surface-3: #334155;
+            --text-1: #f1f5f9;
+            --text-2: #94a3b8;
+            --text-3: #64748b;
+            --border: #334155;
+            --border-lt: #1e293b;
+            --primary-light: #1e3a5f;
+            --primary-bg: #172554;
+            --danger-light: #450a0a;
+            --danger-bg: #450a0a;
+            --warning-light: #451a03;
+            --warning-bg: #451a03;
+            --success-light: #052e16;
+            --success-bg: #052e16;
+            --info-light: #0c4a6e;
+            --info-bg: #0c4a6e;
+            --purple-light: #2e1065;
+            --shadow-xs: 0 1px 2px rgba(0,0,0,.2);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+            --shadow-md: 0 4px 6px rgba(0,0,0,.3);
+        }
+        [data-theme="eye"] {
+            --bg: #f5f0e1;
+            --surface: #faf6eb;
+            --surface-2: #f5f0e1;
+            --surface-3: #ece5d5;
+            --text-1: #3d3529;
+            --text-2: #6b6052;
+            --text-3: #9a8e7e;
+            --border: #d9d0c3;
+            --border-lt: #e5ddd0;
+            --primary-light: #d4c9a8;
+            --primary-bg: #e8e0c8;
+            --danger-light: #f5e0d0;
+            --danger-bg: #f5e0d0;
+            --warning-light: #f5ecd0;
+            --warning-bg: #f5ecd0;
+            --success-light: #e0ecd0;
+            --success-bg: #e0ecd0;
+            --info-light: #d0e0f0;
+            --info-bg: #d0e0f0;
+            --purple-light: #e0d8f0;
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        html{font-size:13px;-webkit-font-smoothing:antialiased}
+        body{font-family:var(--font);background:var(--bg);color:var(--text-1);height:100vh;display:flex;flex-direction:column;overflow:hidden;transition:background var(--transition),color var(--transition)}
+        a{color:var(--primary);text-decoration:none}
+        .hdr{height:var(--hdr);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0;z-index:100}
+        .hdr-logo{display:flex;align-items:center;gap:7px;font-weight:700;font-size:13px;color:var(--primary);white-space:nowrap}
+        .hdr-logo svg{width:20px;height:20px}
+        .hdr-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+        .hdr-breadcrumb{font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px}
+        .hdr-breadcrumb a:hover{color:var(--primary)}
+        .hdr-breadcrumb .current{color:var(--text-2);font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .hdr-actions{margin-left:auto;display:flex;gap:4px;align-items:center}
+        .btn-icon{width:30px;height:30px;border:1px solid var(--border);border-radius:var(--r-xs);background:var(--surface-2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-2);font-size:13px;transition:all var(--transition)}
+        .btn-icon:hover{background:var(--primary-light);color:var(--primary);border-color:var(--primary)}
+        .btn-icon.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .btn-sm{padding:5px 12px;border:1px solid var(--border);border-radius:var(--r-xs);background:var(--surface);cursor:pointer;font-size:11px;color:var(--text-2);transition:all var(--transition);display:flex;align-items:center;gap:4px;white-space:nowrap}
+        .btn-sm:hover{border-color:var(--primary);color:var(--primary)}
+        .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .btn-primary:hover{background:var(--primary-hover)}
+        .theme-group{display:flex;border:1px solid var(--border);border-radius:var(--r-xs);overflow:hidden}
+        .theme-btn{width:28px;height:28px;border:none;background:var(--surface-2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;transition:all var(--transition)}
+        .theme-btn:hover{background:var(--primary-light);color:var(--primary)}
+        .theme-btn.active{background:var(--primary);color:#fff}
+        .layout{flex:1;display:flex;overflow:hidden}
+        .canvas-area{flex:1;display:flex;flex-direction:column;background:var(--surface-3);position:relative;min-width:0}
+        .canvas-toolbar{height:34px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 6px;gap:2px;flex-shrink:0}
+        .tool-btn{width:26px;height:26px;border:none;background:none;cursor:pointer;border-radius:var(--r-xs);color:var(--text-2);font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .1s}
+        .tool-btn:hover{background:var(--primary-light);color:var(--primary)}
+        .tool-btn.active{background:var(--primary);color:#fff}
+        .tool-sep{width:1px;height:16px;background:var(--border);margin:0 3px}
+        .tool-zoom{font-size:10px;color:var(--text-3);font-family:var(--font-mono);min-width:44px;text-align:center;user-select:none}
+        .tool-label{font-size:10px;color:var(--text-3);margin-left:auto;user-select:none}
+        .canvas-wrap{flex:1;overflow:hidden;position:relative;cursor:crosshair;background:var(--surface-3)}
+        .canvas-inner{position:absolute;transform-origin:0 0;will-change:transform}
+        .canvas-inner img{display:block;user-select:none;-webkit-user-drag:none;background:#fff;box-shadow:var(--shadow-md)}
+        .canvas-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+        .annotation-marker{position:absolute;pointer-events:auto;cursor:pointer;transform:translate(-50%,-50%);z-index:20;transition:transform .15s}
+        .annotation-marker:hover{transform:translate(-50%,-50%) scale(1.3);z-index:30}
+        .annotation-marker .marker-dot{width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+        .annotation-marker.sev-high .marker-dot{background:var(--danger)}
+        .annotation-marker.sev-medium .marker-dot{background:var(--warning)}
+        .annotation-marker.sev-low .marker-dot{background:var(--info)}
+        .annotation-marker.active .marker-dot{box-shadow:0 0 0 3px rgba(37,99,235,.4),0 1px 4px rgba(0,0,0,.3);transform:scale(1.2)}
+        .annotation-marker .marker-label{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;font-size:9px;white-space:nowrap;background:var(--surface);padding:1px 5px;border-radius:3px;box-shadow:var(--shadow-sm);color:var(--text-2);border:1px solid var(--border);opacity:0;transition:opacity .15s;pointer-events:none}
+        .annotation-marker:hover .marker-label{opacity:1}
+        .magnifier{position:absolute;width:160px;height:160px;border:2px solid var(--primary);border-radius:50%;overflow:hidden;pointer-events:none;z-index:50;display:none;box-shadow:var(--shadow-lg)}
+        .magnifier img{position:absolute}
+        .sidebar{width:var(--sidebar-w);background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;transition:width .25s var(--transition)}
+        .sidebar.collapsed{width:0;border:none;overflow:hidden}
+        .sidebar-header{padding:10px 12px 0;flex-shrink:0}
+        .sidebar-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+        .sidebar-tab{flex:1;padding:9px 6px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;border:none;border-bottom:2px solid transparent;color:var(--text-3);transition:all var(--transition);background:none}
+        .sidebar-tab:hover{color:var(--text-2)}
+        .sidebar-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+        .sidebar-tab .tab-badge{display:inline-block;min-width:16px;height:16px;line-height:16px;padding:0 4px;font-size:9px;font-weight:700;border-radius:8px;background:var(--primary);color:#fff;margin-left:3px;vertical-align:middle}
+        .sidebar-content{flex:1;overflow-y:auto;padding:10px 12px}
+        .sidebar-content::-webkit-scrollbar{width:4px}
+        .sidebar-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+        .sidebar-content::-webkit-scrollbar-track{background:transparent}
+        .filter-bar{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
+        .filter-chip{font-size:10px;padding:3px 8px;border-radius:10px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;color:var(--text-2);transition:all var(--transition);white-space:nowrap}
+        .filter-chip:hover{border-color:var(--primary);color:var(--primary)}
+        .filter-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .score-card{display:flex;align-items:center;gap:14px;padding:14px;background:var(--surface-2);border-radius:var(--r-md);border:1px solid var(--border-lt);margin-bottom:10px}
+        .score-ring{width:56px;height:56px;position:relative;flex-shrink:0}
+        .score-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+        .score-ring circle{fill:none;stroke-width:4}
+        .score-ring .bg{stroke:var(--border-lt)}
+        .score-ring .fg{stroke:var(--primary);stroke-linecap:round;transition:stroke-dashoffset .8s ease}
+        .score-value{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
+        .score-info h3{font-size:12px;font-weight:600;margin-bottom:2px}
+        .score-info p{font-size:10px;color:var(--text-3);line-height:1.4}
+        .score-good .fg{stroke:var(--success)}.score-good .score-value{color:var(--success)}
+        .score-mid .fg{stroke:var(--warning)}.score-mid .score-value{color:var(--warning)}
+        .score-bad .fg{stroke:var(--danger)}.score-bad .score-value{color:var(--danger)}
+        .error-list{display:flex;flex-direction:column;gap:5px}
+        .error-card{padding:9px 10px;border-radius:var(--r-md);border-left:3px solid;cursor:pointer;transition:all var(--transition)}
+        .error-card:hover{box-shadow:var(--shadow-sm);transform:translateX(1px)}
+        .error-card.active{box-shadow:var(--shadow-md);transform:translateX(2px)}
+        .error-card.sev-high{border-left-color:var(--danger);background:var(--danger-bg)}
+        .error-card.sev-medium{border-left-color:var(--warning);background:var(--warning-bg)}
+        .error-card.sev-low{border-left-color:var(--info);background:var(--info-bg)}
+        .error-card-head{display:flex;align-items:center;gap:5px;margin-bottom:3px;flex-wrap:wrap}
+        .error-type{font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;color:#fff}
+        .error-type.t-dim{background:var(--primary)}.error-type.t-line{background:var(--purple)}.error-type.t-tol{background:var(--warning)}.error-type.t-title{background:#78716c}.error-type.t-sym{background:var(--info)}.error-type.t-other{background:var(--text-3)}
+        .error-sev{font-size:9px;font-weight:600;padding:1px 4px;border-radius:3px}
+        .error-sev.s-high{background:var(--danger);color:#fff}.error-sev.s-medium{background:var(--warning);color:#fff}.error-sev.s-low{background:var(--info);color:#fff}
+        .error-source{font-size:9px;padding:1px 4px;border-radius:3px;background:var(--surface);border:1px solid var(--border);color:var(--text-3)}
+        .error-desc{font-size:11px;line-height:1.5;color:var(--text-1);margin-bottom:3px}
+        .error-suggest{font-size:10px;color:var(--primary)}
+        .error-actions{display:flex;gap:4px;margin-top:5px}
+        .error-action-btn{font-size:9px;padding:2px 6px;border:1px solid var(--border);border-radius:3px;background:var(--surface);cursor:pointer;color:var(--text-2);transition:all var(--transition)}
+        .error-action-btn:hover{border-color:var(--primary);color:var(--primary)}
+        .feedback-card{padding:9px 10px;background:var(--info-bg);border-left:3px solid var(--info);border-radius:var(--r-md);margin-bottom:5px;font-size:11px;line-height:1.6}
+        .kb-card{padding:9px 10px;background:var(--success-bg);border-left:3px solid var(--success);border-radius:var(--r-md);margin-bottom:5px}
+        .kb-card strong{font-size:11px;display:block;margin-bottom:2px}
+        .kb-card p{font-size:10px;color:var(--text-2);line-height:1.5;margin-bottom:2px}
+        .kb-card small{font-size:9px;color:var(--text-3)}
+        .llm-card{padding:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:6px}
+        .llm-card pre{font-family:var(--font-mono);font-size:10px;line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow-y:auto;color:var(--text-2)}
+        .llm-meta{font-size:9px;color:var(--text-3);margin-bottom:5px}
+        .tab-panel{display:none}.tab-panel.active{display:block}
+        .sec-title{font-size:11px;font-weight:700;color:var(--text-2);margin:10px 0 6px;padding-bottom:3px;border-bottom:1px solid var(--border-lt);display:flex;align-items:center;justify-content:space-between}
+        .sec-title:first-child{margin-top:0}
+        .sec-count{font-size:9px;font-weight:400;color:var(--text-3)}
+        .ftr{height:var(--ftr);background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 10px;font-size:9px;color:var(--text-3);gap:14px;flex-shrink:0}
+        .ftr-dot{width:5px;height:5px;border-radius:50%;background:var(--success);display:inline-block;margin-right:3px}
+        .ftr-sep{width:1px;height:10px;background:var(--border)}
+        .ocr-table{width:100%;border-collapse:collapse;font-size:10px}
+        .ocr-table th{text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--text-3);font-weight:600}
+        .ocr-table td{padding:3px 6px;border-bottom:1px solid var(--border-lt)}
+        .ocr-conf{font-family:var(--font-mono);font-size:9px;color:var(--text-3)}
+        .empty{text-align:center;padding:20px;color:var(--text-3);font-size:11px}
+        .search-box{width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:11px;background:var(--surface-2);color:var(--text-1);margin-bottom:8px;transition:border-color var(--transition)}
+        .search-box:focus{outline:none;border-color:var(--primary)}
+        .search-box::placeholder{color:var(--text-3)}
+        .kbd{display:inline-block;padding:0 3px;font-size:9px;font-family:var(--font-mono);background:var(--surface-3);border:1px solid var(--border);border-radius:2px;color:var(--text-3)}
+        .stats-bar{display:flex;gap:6px;margin-bottom:10px}
+        .stat-item{flex:1;text-align:center;padding:6px 4px;background:var(--surface-2);border-radius:var(--r-sm);border:1px solid var(--border-lt)}
+        .stat-num{font-size:16px;font-weight:700;line-height:1}
+        .stat-num.c-danger{color:var(--danger)}.stat-num.c-warning{color:var(--warning)}.stat-num.c-info{color:var(--info)}
+        .stat-label{font-size:9px;color:var(--text-3);margin-top:2px}
+        @media(max-width:1024px){.sidebar{width:320px}}
+        @media(max-width:768px){
+            .sidebar{position:absolute;right:0;top:var(--hdr);bottom:var(--ftr);z-index:50;box-shadow:-4px 0 12px rgba(0,0,0,.1);width:300px}
+            .sidebar.collapsed{width:0}
+            .hdr-breadcrumb .current{max-width:120px}
+        }
+        @media(max-width:480px){
+            .sidebar{width:100%}
+            .hdr-actions .btn-sm span{display:none}
+        }
+        @media print{
+            .hdr,.ftr,.canvas-toolbar,.sidebar{display:none!important}
+            .canvas-area{position:static!important}
+            .canvas-wrap{overflow:visible!important}
+        }
+    </style>
+</head>
+<body>
+    <header class="hdr">
+        <div class="hdr-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            工图纠错
+        </div>
+        <div class="hdr-sep"></div>
+        <div class="hdr-breadcrumb">
+            <a href="/">首页</a> <span style="color:var(--text-3)">›</span> <span class="current">{{ filename }}</span>
+        </div>
+        <div class="hdr-actions">
+            <button class="btn-icon" onclick="toggleSidebar()" title="切换侧栏 (Tab)">⊞</button>
+            <div class="theme-group">
+                <button class="theme-btn" data-theme="light" onclick="setTheme('light')" title="浅色">☀</button>
+                <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')" title="深色">🌙</button>
+                <button class="theme-btn" data-theme="eye" onclick="setTheme('eye')" title="护眼">👁</button>
+            </div>
+            <button class="btn-sm btn-primary" onclick="exportReport()" title="导出报告"><span>📄</span> <span>导出</span></button>
+            <a href="/" class="btn-sm" title="上传新图纸"><span>↑</span> <span>新图纸</span></a>
+        </div>
+    </header>
+
+    <div class="layout">
+        <div class="canvas-area">
+            <div class="canvas-toolbar">
+                <button class="tool-btn" onclick="zoomBy(-0.15)" title="缩小 (-)">−</button>
+                <span class="tool-zoom" id="zoomLevel">100%</span>
+                <button class="tool-btn" onclick="zoomBy(0.15)" title="放大 (+)">+</button>
+                <button class="tool-btn" onclick="zoomFit()" title="适应窗口 (F)">⊡</button>
+                <button class="tool-btn" onclick="zoomReset()" title="1:1原始尺寸 (0)">1:1</button>
+                <div class="tool-sep"></div>
+                <button class="tool-btn" id="btnInvert" onclick="toggleInvert()" title="反色模式 (I)">◐</button>
+                <button class="tool-btn" id="btnMagnifier" onclick="toggleMagnifier()" title="放大镜 (M)">🔍</button>
+                <div class="tool-sep"></div>
+                <button class="tool-btn" id="btnAnnotations" onclick="toggleAnnotations()" title="标注显示/隐藏 (A)">📌</button>
+                <div class="tool-sep"></div>
+                <span class="tool-label">滚轮缩放 · 中键平移 · <span class="kbd">A</span> 标注 · <span class="kbd">F</span> 适应</span>
+            </div>
+            <div class="canvas-wrap" id="canvasWrap">
+                <div class="canvas-inner" id="canvasInner">
+                    <img id="drawingImg" src="{{ url_for('uploaded_file', filename=filename) }}" alt="图纸" draggable="false" onload="onImgLoad()">
+                </div>
+                <div class="canvas-overlay" id="canvasOverlay"></div>
+                <div class="magnifier" id="magnifier"><img id="magImg" src="{{ url_for('uploaded_file', filename=filename) }}" alt=""></div>
+            </div>
+        </div>
+
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" onclick="switchTab('errors')">纠错详情 <span class="tab-badge" id="errorBadge">{{ errors|length }}</span></button>
+                <button class="sidebar-tab" onclick="switchTab('analysis')">AI分析</button>
+                <button class="sidebar-tab" onclick="switchTab('knowledge')">知识库</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="tab-panel active" id="panel-errors">
+                    {% if report and report.summary %}
+                    <div class="score-card {% if report.summary.overall_score >= 80 %}score-good{% elif report.summary.overall_score >= 50 %}score-mid{% else %}score-bad{% endif %}">
+                        <div class="score-ring">
+                            <svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9" stroke-dasharray="{{ report.summary.overall_score|default(0) }} {{ 100 - report.summary.overall_score|default(0) }}"/></svg>
+                            <div class="score-value">{{ report.summary.overall_score|default(0) }}</div>
+                        </div>
+                        <div class="score-info">
+                            <h3>综合评分</h3>
+                            <p>{{ report.summary.total_errors|default(0) }}个问题 · {{ report.summary.error_categories|length|default(0) }}个类别</p>
+                            {% if report.summary.llm_summary %}<p style="margin-top:3px;color:var(--text-2)">{{ report.summary.llm_summary[:60] }}</p>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="stats-bar">
+                        <div class="stat-item"><div class="stat-num c-danger">{{ errors|selectattr('severity','eq','高')|list|length + errors|selectattr('severity','eq','high')|list|length }}</div><div class="stat-label">高严重</div></div>
+                        <div class="stat-item"><div class="stat-num c-warning">{{ errors|selectattr('severity','eq','中')|list|length + errors|selectattr('severity','eq','medium')|list|length }}</div><div class="stat-label">中严重</div></div>
+                        <div class="stat-item"><div class="stat-num c-info">{{ errors|selectattr('severity','eq','低')|list|length + errors|selectattr('severity','eq','low')|list|length }}</div><div class="stat-label">低严重</div></div>
+                    </div>
+
+                    <input type="text" class="search-box" id="errorSearch" placeholder="搜索错误描述..." oninput="filterErrors()">
+
+                    <div class="filter-bar" id="filterBar">
+                        <span class="filter-chip active" data-filter="all" onclick="setFilter('all')">全部</span>
+                        <span class="filter-chip" data-filter="high" onclick="setFilter('high')">高严重</span>
+                        <span class="filter-chip" data-filter="medium" onclick="setFilter('medium')">中严重</span>
+                        <span class="filter-chip" data-filter="low" onclick="setFilter('low')">低严重</span>
+                    </div>
+
+                    <div class="sec-title">检测到的问题 <span class="sec-count" id="errorCount">{{ errors|length }}</span></div>
+                    <div class="error-list" id="errorList">
+                    {% if errors %}
+                        {% for error in errors %}
+                            {% if error is mapping %}
+                            <div class="error-card sev-{{ error.get('severity','medium')|lower }}" data-severity="{{ error.get('severity','medium')|lower }}" data-type="{{ error.get('type','') }}" data-index="{{ loop.index0 }}" onclick="focusError({{ loop.index0 }})">
+                                <div class="error-card-head">
+                                    <span class="error-type {% if '尺寸' in error.get('type','') %}t-dim{% elif '线型' in error.get('type','') %}t-line{% elif '公差' in error.get('type','') %}t-tol{% elif '标题' in error.get('type','') %}t-title{% elif '符号' in error.get('type','') %}t-sym{% else %}t-other{% endif %}">{{ error.get('type','未知') }}</span>
+                                    <span class="error-sev s-{{ error.get('severity','medium')|lower }}">{{ {'high':'高','medium':'中','low':'低'}.get(error.get('severity','medium'), '中') }}</span>
+                                    {% if error.get('source') %}<span class="error-source">{{ {'hard_rule':'硬规则','llm_analysis':'AI分析','soft_rule':'软规则'}.get(error.source, error.source) }}</span>{% endif %}
+                                </div>
+                                <div class="error-desc">{{ error.get('description','') }}</div>
+                                {% if error.get('suggestion') %}<div class="error-suggest">✏ {{ error.suggestion }}</div>{% endif %}
+                                <div class="error-actions">
+                                    <button class="error-action-btn" onclick="event.stopPropagation();confirmError({{ loop.index0 }})">✓ 确认</button>
+                                    <button class="error-action-btn" onclick="event.stopPropagation();ignoreError({{ loop.index0 }})">✕ 忽略</button>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="error-card sev-medium" data-severity="medium" data-type="" data-index="{{ loop.index0 }}" onclick="focusError({{ loop.index0 }})">
+                                <div class="error-card-head"><span class="error-type t-other">问题</span></div>
+                                <div class="error-desc">{{ error }}</div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty">✅ 未检测到明显错误</div>
+                    {% endif %}
+                    </div>
+
+                    <div class="sec-title">苏格拉底式引导</div>
+                    {% if feedback %}
+                        {% for item in feedback %}
+                        <div class="feedback-card">💬 {{ item }}</div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty">暂无引导反馈</div>
+                    {% endif %}
+
+                    {% if report and report.recommendations %}
+                    <div class="sec-title">学习建议</div>
+                    {% for rec in report.recommendations %}
+                        <div style="font-size:11px;padding:3px 0;color:var(--text-2)">• {{ rec }}</div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="tab-panel" id="panel-analysis">
+                    {% if api_result and api_result.raw_response %}
+                    <div class="llm-card">
+                        <div class="llm-meta">🤖 {{ api_result.model|default('unknown') }} {% if api_result.usage %}| tokens: {{ api_result.usage.get('total_tokens','N/A') }}{% endif %}</div>
+                        <div id="llmParsed"></div>
+                        <details style="margin-top:8px">
+                            <summary style="cursor:pointer;color:var(--text-3);font-size:11px">查看原始响应</summary>
+                            <pre style="max-height:300px;overflow:auto;font-size:10px">{{ api_result.raw_response }}</pre>
+                        </details>
+                    </div>
+                    <script>
+                    (function(){
+                        var raw = {{ api_result.raw_response | tojson }};
+                        try {
+                            var start = raw.indexOf('{');
+                            var end = raw.lastIndexOf('}') + 1;
+                            if (start >= 0 && end > start) {
+                                var data = JSON.parse(raw.substring(start, end));
+                                var html = '';
+                                if (data.drawing_type) html += '<div style="margin-bottom:6px"><strong>图纸类型：</strong>' + data.drawing_type + '</div>';
+                                if (data.content_summary) html += '<div style="margin-bottom:6px"><strong>内容概述：</strong>' + data.content_summary + '</div>';
+                                if (data.summary) html += '<div style="margin-bottom:6px;padding:8px;background:var(--surface-2);border-radius:var(--r-sm);font-size:12px">' + data.summary + '</div>';
+                                if (data.overall_score !== undefined) html += '<div style="margin-bottom:6px"><strong>综合评分：</strong><span style="color:' + (data.overall_score>=80?'var(--success)':data.overall_score>=60?'var(--warning)':'var(--danger)') + ';font-size:18px;font-weight:700">' + data.overall_score + '</span>/100</div>';
+                                if (data.errors && data.errors.length > 0) {
+                                    html += '<div style="margin-top:8px"><strong>AI检测错误：</strong></div>';
+                                    data.errors.forEach(function(e){
+                                        var sevColor = e.severity==='高'?'var(--danger)':e.severity==='中'?'var(--warning)':'var(--info)';
+                                        html += '<div style="padding:6px 8px;margin:4px 0;border-left:3px solid '+sevColor+';background:var(--surface-2);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:11px">';
+                                        html += '<strong>['+e.severity+'] '+e.type+'</strong>: '+e.description;
+                                        if (e.suggestion) html += '<br><span style="color:var(--text-3)">→ '+e.suggestion+'</span>';
+                                        if (e.gb_reference) html += '<br><span style="color:var(--primary);font-size:10px">📎 '+e.gb_reference+'</span>';
+                                        html += '</div>';
+                                    });
+                                }
+                                if (data.learning_points && data.learning_points.length > 0) {
+                                    html += '<div style="margin-top:8px"><strong>学习要点：</strong></div>';
+                                    data.learning_points.forEach(function(p){
+                                        html += '<div style="padding:4px 8px;font-size:11px;color:var(--text-2)">💡 '+p+'</div>';
+                                    });
+                                }
+                                document.getElementById('llmParsed').innerHTML = html || '<div class="empty">AI分析结果解析为空</div>';
+                            } else {
+                                document.getElementById('llmParsed').innerHTML = '<pre style="white-space:pre-wrap;font-size:11px">' + raw + '</pre>';
+                            }
+                        } catch(e) {
+                            document.getElementById('llmParsed').innerHTML = '<pre style="white-space:pre-wrap;font-size:11px">' + raw + '</pre>';
+                        }
+                    })();
+                    </script>
+                    {% else %}
+                    <div class="empty">AI分析结果未返回（请检查大模型API是否可用）</div>
+                    {% endif %}
+
+                    <div class="sec-title">OCR识别结果 <span class="sec-count">{{ ocr_results|length }}</span></div>
+                    {% if ocr_results %}
+                    <table class="ocr-table">
+                        <tr><th>文本</th><th>置信度</th></tr>
+                        {% for r in ocr_results %}
+                        <tr><td>{{ r.text }}</td><td class="ocr-conf">{{ "%.2f"|format(r.confidence) }}</td></tr>
+                        {% endfor %}
+                    </table>
+                    {% else %}
+                    <div class="empty">未识别到文字</div>
+                    {% endif %}
+                </div>
+
+                <div class="tab-panel" id="panel-knowledge">
+                    <div class="sec-title" style="margin-top:0">GB/T 14665-2012 机械工程CAD制图规则</div>
+                    <p style="font-size:10px;color:var(--text-3);margin-bottom:10px">以下为与当前检测错误相关的国标条款</p>
+                    {% if gb_knowledge %}
+                        {% for item in gb_knowledge %}
+                        <div class="kb-card">
+                            <strong>{{ item.get('title', '标准条款') }}</strong>
+                            <p>{{ item.get('content', '')[:300] }}{% if item.get('content','')|length > 300 %}...{% endif %}</p>
+                            <small>来源: {{ item.get('source', 'GB/T 14665-2012') }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty">暂无相关国标条款</div>
+                    {% endif %}
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <footer class="ftr">
+        <span><span class="ftr-dot"></span>分析完成</span>
+        <span class="ftr-sep"></span>
+        <span>文件: {{ filename }}</span>
+        <span class="ftr-sep"></span>
+        <span>错误: {{ errors|length }}项</span>
+        {% if report and report.summary %}<span class="ftr-sep"></span><span>评分: {{ report.summary.overall_score|default(0) }}/100</span>{% endif %}
+        <span style="margin-left:auto"><span class="kbd">Tab</span> 侧栏 <span class="kbd">A</span> 标注 <span class="kbd">F</span> 适应 <span class="kbd">I</span> 反色</span>
+    </footer>
+
+    <script>
+    (function(){
+        var scale = 1, panX = 0, panY = 0;
+        var isPanning = false, panStartX = 0, panStartY = 0, panStartPanX = 0, panStartPanY = 0;
+        var inverted = false, magnifierOn = false, annotationsVisible = true;
+        var activeErrorIndex = -1;
+        var currentFilter = 'all';
+        var img = document.getElementById('drawingImg');
+        var inner = document.getElementById('canvasInner');
+        var wrap = document.getElementById('canvasWrap');
+        var zoomEl = document.getElementById('zoomLevel');
+        var overlay = document.getElementById('canvasOverlay');
+        var magEl = document.getElementById('magnifier');
+        var magImg = document.getElementById('magImg');
+        var imgNaturalW = 0, imgNaturalH = 0;
+
+        var errorData = [
+            {% if errors %}
+            {% for error in errors %}
+            {% if error is mapping %}
+            {type:'{{ error.get("type","") }}',severity:'{{ error.get("severity","medium")|lower }}',description:'{{ error.get("description","")|e }}',suggestion:'{{ error.get("suggestion","")|e }}',source:'{{ error.get("source","") }}'}{% if not loop.last %},{% endif %}
+            {% else %}
+            {type:'未知',severity:'medium',description:'{{ error|e }}',suggestion:'',source:''}{% if not loop.last %},{% endif %}
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+        ];
+
+        function updateTransform(){
+            inner.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+            zoomEl.textContent = Math.round(scale * 100) + '%';
+            updateAnnotationPositions();
+        }
+
+        window.zoomBy = function(delta){
+            scale = Math.max(0.1, Math.min(10, scale + delta));
+            updateTransform();
+        };
+
+        window.zoomFit = function(){
+            if(!imgNaturalW) return;
+            var ww = wrap.clientWidth - 32;
+            var wh = wrap.clientHeight - 32;
+            scale = Math.min(ww / imgNaturalW, wh / imgNaturalH, 1);
+            panX = (wrap.clientWidth - imgNaturalW * scale) / 2;
+            panY = (wrap.clientHeight - imgNaturalH * scale) / 2;
+            updateTransform();
+        };
+
+        window.zoomReset = function(){
+            scale = 1;
+            panX = (wrap.clientWidth - imgNaturalW) / 2;
+            panY = (wrap.clientHeight - imgNaturalH) / 2;
+            updateTransform();
+        };
+
+        wrap.addEventListener('wheel', function(e){
+            e.preventDefault();
+            var rect = wrap.getBoundingClientRect();
+            var mx = e.clientX - rect.left;
+            var my = e.clientY - rect.top;
+            var oldScale = scale;
+            var delta = e.deltaY > 0 ? -0.1 : 0.1;
+            scale = Math.max(0.1, Math.min(10, scale + delta * scale * 0.3));
+            panX = mx - (mx - panX) * (scale / oldScale);
+            panY = my - (my - panY) * (scale / oldScale);
+            updateTransform();
+        }, {passive: false});
+
+        wrap.addEventListener('mousedown', function(e){
+            if(e.button === 1 || e.button === 0 && e.shiftKey){
+                isPanning = true;
+                panStartX = e.clientX; panStartY = e.clientY;
+                panStartPanX = panX; panStartPanY = panY;
+                wrap.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('mousemove', function(e){
+            if(isPanning){
+                panX = panStartPanX + (e.clientX - panStartX);
+                panY = panStartPanY + (e.clientY - panStartY);
+                updateTransform();
+            }
+            if(magnifierOn && magEl.style.display !== 'none'){
+                updateMagnifier(e);
+            }
+        });
+        document.addEventListener('mouseup', function(){
+            if(isPanning){
+                isPanning = false;
+                wrap.style.cursor = 'crosshair';
+            }
+        });
+
+        wrap.addEventListener('mousemove', function(e){
+            if(magnifierOn){
+                updateMagnifier(e);
+            }
+        });
+
+        function updateMagnifier(e){
+            var rect = wrap.getBoundingClientRect();
+            var mx = e.clientX - rect.left;
+            var my = e.clientY - rect.top;
+            magEl.style.display = 'block';
+            magEl.style.left = (mx + 20) + 'px';
+            magEl.style.top = (my - 80) + 'px';
+            var magScale = 3;
+            var imgX = (mx - panX) / scale;
+            var imgY = (my - panY) / scale;
+            magImg.style.width = (imgNaturalW * magScale) + 'px';
+            magImg.style.height = (imgNaturalH * magScale) + 'px';
+            magImg.style.left = (-imgX * magScale + 80) + 'px';
+            magImg.style.top = (-imgY * magScale + 80) + 'px';
+        }
+
+        window.toggleInvert = function(){
+            inverted = !inverted;
+            img.style.filter = inverted ? 'invert(1)' : '';
+            document.getElementById('btnInvert').classList.toggle('active', inverted);
+        };
+
+        window.toggleMagnifier = function(){
+            magnifierOn = !magnifierOn;
+            document.getElementById('btnMagnifier').classList.toggle('active', magnifierOn);
+            if(!magnifierOn) magEl.style.display = 'none';
+        };
+
+        window.toggleAnnotations = function(){
+            annotationsVisible = !annotationsVisible;
+            document.getElementById('btnAnnotations').classList.toggle('active', !annotationsVisible);
+            overlay.style.display = annotationsVisible ? '' : 'none';
+        };
+
+        window.toggleSidebar = function(){
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        };
+
+        window.switchTab = function(name){
+            document.querySelectorAll('.sidebar-tab').forEach(function(t){t.classList.remove('active')});
+            document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});
+            document.getElementById('panel-' + name).classList.add('active');
+            event.target.closest('.sidebar-tab').classList.add('active');
+        };
+
+        window.setTheme = function(t){
+            document.documentElement.setAttribute('data-theme', t);
+            localStorage.setItem('theme', t);
+            document.querySelectorAll('.theme-btn').forEach(function(btn){
+                btn.classList.toggle('active', btn.getAttribute('data-theme') === t);
+            });
+        };
+
+        window.focusError = function(idx){
+            activeErrorIndex = idx;
+            document.querySelectorAll('.error-card').forEach(function(c){c.classList.remove('active')});
+            var card = document.querySelector('.error-card[data-index="' + idx + '"]');
+            if(card) card.classList.add('active');
+            highlightAnnotation(idx);
+        };
+
+        var rlSessionId = {{ rl_session_id | tojson }};
+
+        window.confirmError = function(idx){
+            var card = document.querySelector('.error-card[data-index="' + idx + '"]');
+            if(card){
+                card.style.opacity = '0.5';
+                card.querySelector('.error-actions').innerHTML = '<span style="font-size:9px;color:var(--success)">✓ 已确认</span>';
+                submitRLFeedback(card, 'confirmed');
+            }
+        };
+
+        window.ignoreError = function(idx){
+            var card = document.querySelector('.error-card[data-index="' + idx + '"]');
+            if(card){
+                card.style.opacity = '0.4';
+                card.querySelector('.error-actions').innerHTML = '<span style="font-size:9px;color:var(--text-3)">✕ 已忽略</span>';
+                submitRLFeedback(card, 'ignored');
+            }
+        };
+
+        function submitRLFeedback(card, feedbackType){
+            var desc = card.querySelector('.error-desc');
+            var errorDesc = desc ? desc.textContent : '';
+            if(!rlSessionId) return;
+            fetch('/api/rl_feedback', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_id: rlSessionId,
+                    error_description: errorDesc,
+                    feedback_type: feedbackType
+                })
+            }).then(function(r){return r.json()}).then(function(d){
+                if(d.success) console.log('[RL] Feedback recorded:', feedbackType, d.rl_stats);
+            }).catch(function(e){console.warn('[RL] Feedback failed:', e)});
+        }
+
+        window.setFilter = function(f){
+            currentFilter = f;
+            document.querySelectorAll('.filter-chip').forEach(function(c){
+                c.classList.toggle('active', c.getAttribute('data-filter') === f);
+            });
+            filterErrors();
+        };
+
+        window.filterErrors = function(){
+            var search = document.getElementById('errorSearch').value.toLowerCase();
+            var visible = 0;
+            document.querySelectorAll('.error-card').forEach(function(card){
+                var sev = card.getAttribute('data-severity');
+                var desc = card.querySelector('.error-desc');
+                var text = desc ? desc.textContent.toLowerCase() : '';
+                var matchSev = currentFilter === 'all' || sev === currentFilter;
+                var matchSearch = !search || text.indexOf(search) >= 0;
+                var show = matchSev && matchSearch;
+                card.style.display = show ? '' : 'none';
+                if(show) visible++;
+            });
+            document.getElementById('errorCount').textContent = visible;
+        };
+
+        function createAnnotations(){
+            overlay.innerHTML = '';
+            if(!errorData.length || !imgNaturalW) return;
+            var cols = Math.ceil(Math.sqrt(errorData.length));
+            var rows = Math.ceil(errorData.length / cols);
+            var cellW = imgNaturalW / (cols + 1);
+            var cellH = imgNaturalH / (rows + 1);
+            errorData.forEach(function(err, i){
+                var col = i % cols;
+                var row = Math.floor(i / cols);
+                var x = (col + 1) * cellW;
+                var y = (row + 1) * cellH;
+                var marker = document.createElement('div');
+                marker.className = 'annotation-marker sev-' + err.severity;
+                marker.setAttribute('data-index', i);
+                marker.style.left = x + 'px';
+                marker.style.top = y + 'px';
+                marker.innerHTML = '<div class="marker-dot">' + (i + 1) + '</div><div class="marker-label">' + err.type + ': ' + err.description.substring(0, 20) + '</div>';
+                marker.onclick = function(){ focusError(i); };
+                overlay.appendChild(marker);
+            });
+        }
+
+        function updateAnnotationPositions(){
+            var markers = overlay.querySelectorAll('.annotation-marker');
+            markers.forEach(function(m){
+                var ox = parseFloat(m.style.left);
+                var oy = parseFloat(m.style.top);
+                m.style.transform = 'translate(-50%,-50%) translate(' + (ox * scale) + 'px,' + (oy * scale) + 'px)';
+                m.style.left = panX + 'px';
+                m.style.top = panY + 'px';
+            });
+        }
+
+        function highlightAnnotation(idx){
+            overlay.querySelectorAll('.annotation-marker').forEach(function(m){
+                m.classList.toggle('active', parseInt(m.getAttribute('data-index')) === idx);
+            });
+        }
+
+        window.exportReport = function(){
+            var content = document.querySelector('.sidebar-content').innerText;
+            var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = '纠错报告_' + '{{ filename }}' + '.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        window.onImgLoad = function(){
+            imgNaturalW = img.naturalWidth;
+            imgNaturalH = img.naturalHeight;
+            img.style.width = imgNaturalW + 'px';
+            img.style.height = imgNaturalH + 'px';
+            createAnnotations();
+            zoomFit();
+        };
+
+        document.addEventListener('keydown', function(e){
+            if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            switch(e.key){
+                case 'f': case 'F': e.preventDefault(); zoomFit(); break;
+                case '0': e.preventDefault(); zoomReset(); break;
+                case '+': case '=': e.preventDefault(); zoomBy(0.15); break;
+                case '-': case '_': e.preventDefault(); zoomBy(-0.15); break;
+                case 'i': case 'I': e.preventDefault(); toggleInvert(); break;
+                case 'a': case 'A': e.preventDefault(); toggleAnnotations(); break;
+                case 'm': case 'M': e.preventDefault(); toggleMagnifier(); break;
+                case 'Tab': e.preventDefault(); toggleSidebar(); break;
+                case 'ArrowDown': e.preventDefault(); navigateError(1); break;
+                case 'ArrowUp': e.preventDefault(); navigateError(-1); break;
+            }
+        });
+
+        function navigateError(dir){
+            var cards = document.querySelectorAll('.error-card');
+            if(!cards.length) return;
+            var next = activeErrorIndex + dir;
+            if(next < 0) next = cards.length - 1;
+            if(next >= cards.length) next = 0;
+            focusError(next);
+            var card = document.querySelector('.error-card[data-index="' + next + '"]');
+            if(card) card.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+        }
+
+        var saved = localStorage.getItem('theme') || 'light';
+        setTheme(saved);
+        document.getElementById('btnAnnotations').classList.add('active');
+    })();
+    </script>
+</body>
+</html>

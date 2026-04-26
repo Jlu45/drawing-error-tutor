@@ -1,0 +1,75 @@
+# Secrets and configuration
+config.py
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+junit.xml
+
+# Type checking
+.mypy_cache/
+.pytype/
+
+# Uploads and user data
+uploads/*.png
+uploads/*.jpg
+uploads/*.jpeg
+uploads/*.gif
+uploads/*.bmp
+
+# RL experience data
+data/rl_experience/*.json
+data/rl_experience/*.npz
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Documentation build
+docs/_build/
+docs/_static/
+docs/_templates/

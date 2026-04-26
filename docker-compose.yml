@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - MULTIMODAL_API_URL=${MULTIMODAL_API_URL}
+      - MULTIMODAL_API_KEY=${MULTIMODAL_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-Qwen2.5-72B-Instruct}
+      - MULTIMODAL_VISION_MODEL=${MULTIMODAL_VISION_MODEL:-kimi}
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5000
+      - FLASK_DEBUG=false
+    volumes:
+      - uploads_data:/app/uploads
+      - rl_data:/app/data/rl_experience
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  uploads_data:
+  rl_data:

@@ -1,0 +1,141 @@
+{
+  "name": "drawing-error-correction",
+  "version": "1.0.0",
+  "description": "Intelligent engineering drawing error correction and tutoring platform based on GB/T national standards",
+  "author": "Drawing Error Correction Contributors",
+  "license": "MIT",
+  "repository": "https://github.com/your-username/drawing-error-correction",
+  "keywords": [
+    "engineering-drawing",
+    "error-correction",
+    "gb-standards",
+    "multi-agent",
+    "socratic-tutoring",
+    "reinforcement-learning",
+    "flask",
+    "opencv",
+    "ocr"
+  ],
+  "categories": [
+    "education",
+    "engineering",
+    "image-analysis"
+  ],
+  "capabilities": [
+    {
+      "name": "drawing-analysis",
+      "description": "Analyze engineering drawings for GB/T standard compliance"
+    },
+    {
+      "name": "error-detection",
+      "description": "Detect errors in dimension annotation, line types, tolerances, title blocks, and symbols"
+    },
+    {
+      "name": "socratic-tutoring",
+      "description": "Provide Socratic-style learning guidance for drawing errors"
+    },
+    {
+      "name": "rl-self-evolution",
+      "description": "Adapt analysis policies based on user feedback via reinforcement learning"
+    },
+    {
+      "name": "knowledge-search",
+      "description": "Search GB national standards knowledge base"
+    }
+  ],
+  "requirements": {
+    "python": ">=3.9",
+    "dependencies": [
+      "flask>=2.3.0",
+      "opencv-python>=4.8.0",
+      "numpy>=1.24.0",
+      "rapidocr-onnxruntime>=1.3.0",
+      "openai>=1.0.0",
+      "faiss-cpu>=1.7.4",
+      "scikit-learn>=1.3.0",
+      "pdfplumber>=0.9.0",
+      "Pillow>=10.0.0",
+      "PyMuPDF>=1.23.0"
+    ],
+    "external_api": {
+      "required": true,
+      "description": "LLM API endpoint compatible with OpenAI API format",
+      "config_fields": [
+        "MULTIMODAL_API_URL",
+        "MULTIMODAL_API_KEY"
+      ]
+    }
+  },
+  "configuration": {
+    "template_file": "config.example.py",
+    "active_file": "config.py",
+    "environment_variables": [
+      "MULTIMODAL_API_URL",
+      "MULTIMODAL_API_KEY",
+      "LLM_MODEL",
+      "MULTIMODAL_VISION_MODEL",
+      "FLASK_HOST",
+      "FLASK_PORT",
+      "FLASK_DEBUG"
+    ]
+  },
+  "endpoints": [
+    {
+      "path": "/",
+      "method": "GET",
+      "description": "Upload page"
+    },
+    {
+      "path": "/upload",
+      "method": "POST",
+      "description": "Upload and analyze drawing"
+    },
+    {
+      "path": "/api/gb_standards",
+      "method": "GET",
+      "description": "Search GB standards"
+    },
+    {
+      "path": "/api/rl_feedback",
+      "method": "POST",
+      "description": "Submit RL feedback"
+    },
+    {
+      "path": "/api/rl_stats",
+      "method": "GET",
+      "description": "Get RL memory stats"
+    }
+  ],
+  "error_categories": [
+    {
+      "type": "尺寸标注",
+      "gb_reference": "GB/T 4458.4",
+      "description": "Dimension annotation errors"
+    },
+    {
+      "type": "线型",
+      "gb_reference": "GB/T 4457.4",
+      "description": "Line type errors"
+    },
+    {
+      "type": "公差",
+      "gb_reference": "GB/T 1800.1",
+      "description": "Tolerance annotation errors"
+    },
+    {
+      "type": "标题栏",
+      "gb_reference": "GB/T 10609.1",
+      "description": "Title block errors"
+    },
+    {
+      "type": "符号",
+      "gb_reference": "GB/T 131",
+      "description": "Symbol annotation errors"
+    },
+    {
+      "type": "几何完整性",
+      "gb_reference": "",
+      "description": "Geometric completeness errors"
+    }
+  ]
+}

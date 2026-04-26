@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drawing-error-correction"
+version = "1.0.0"
+description = "Intelligent engineering drawing error correction and tutoring platform based on GB/T national standards"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Drawing Error Correction Contributors"},
+]
+keywords = ["engineering-drawing", "error-correction", "gb-standards", "multi-agent", "flask"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: Flask",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+
+dependencies = [
+    "flask>=2.3.0",
+    "opencv-python>=4.8.0",
+    "numpy>=1.24.0",
+    "rapidocr-onnxruntime>=1.3.0",
+    "openai>=1.0.0",
+    "faiss-cpu>=1.7.4",
+    "scikit-learn>=1.3.0",
+    "pdfplumber>=0.9.0",
+    "Pillow>=10.0.0",
+    "PyMuPDF>=1.23.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "flake8>=6.0",
+    "mypy>=1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-username/drawing-error-correction"
+Documentation = "https://github.com/your-username/drawing-error-correction/tree/main/docs"
+Repository = "https://github.com/your-username/drawing-error-correction"
+Issues = "https://github.com/your-username/drawing-error-correction/issues"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks integration tests",
+    "requires_api: marks tests that require API access",
+]
+
+[tool.flake8]
+max-line-length = 120
+exclude = [".git", "__pycache__", "build", "dist", ".eggs"]
+ignore = ["E501", "W503"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工图智能纠错平台</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #dbeafe;
+            --primary-bg: #eff6ff;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --warning: #d97706;
+            --warning-light: #fffbeb;
+            --success: #16a34a;
+            --success-light: #f0fdf4;
+            --info: #0284c7;
+            --info-light: #f0f9ff;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --surface-3: #f1f5f9;
+            --text-1: #0f172a;
+            --text-2: #475569;
+            --text-3: #94a3b8;
+            --border: #e2e8f0;
+            --border-lt: #f1f5f9;
+            --shadow-xs: 0 1px 2px rgba(0,0,0,.05);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,.08), 0 2px 4px -2px rgba(0,0,0,.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.04);
+            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,.08), 0 8px 10px -6px rgba(0,0,0,.04);
+            --r-xs: 3px;
+            --r-sm: 5px;
+            --r-md: 8px;
+            --r-lg: 12px;
+            --r-xl: 16px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            --header-h: 52px;
+            --transition: .2s cubic-bezier(.4,0,.2,1);
+        }
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-2: #1e293b;
+            --surface-3: #334155;
+            --text-1: #f1f5f9;
+            --text-2: #94a3b8;
+            --text-3: #64748b;
+            --border: #334155;
+            --border-lt: #1e293b;
+            --primary-light: #1e3a5f;
+            --primary-bg: #172554;
+            --danger-light: #450a0a;
+            --warning-light: #451a03;
+            --success-light: #052e16;
+            --info-light: #0c4a6e;
+            --shadow-xs: 0 1px 2px rgba(0,0,0,.2);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+            --shadow-md: 0 4px 6px rgba(0,0,0,.3);
+        }
+        [data-theme="eye"] {
+            --bg: #f5f0e1;
+            --surface: #faf6eb;
+            --surface-2: #f5f0e1;
+            --surface-3: #ece5d5;
+            --text-1: #3d3529;
+            --text-2: #6b6052;
+            --text-3: #9a8e7e;
+            --border: #d9d0c3;
+            --border-lt: #e5ddd0;
+            --primary-light: #d4c9a8;
+            --primary-bg: #e8e0c8;
+            --danger-light: #f5e0d0;
+            --warning-light: #f5ecd0;
+            --success-light: #e0ecd0;
+            --info-light: #d0e0f0;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 14px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-1);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background var(--transition), color var(--transition);
+        }
+        .header {
+            height: var(--header-h);
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-xs);
+        }
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--primary);
+        }
+        .header-logo svg { width: 26px; height: 26px; }
+        .header-logo .logo-sub {
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--text-3);
+            margin-left: 8px;
+            padding-left: 8px;
+            border-left: 1px solid var(--border);
+        }
+        .header-nav { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+        .theme-group {
+            display: flex;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            overflow: hidden;
+        }
+        .theme-btn {
+            width: 32px; height: 30px;
+            border: none;
+            background: var(--surface-2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-3);
+            font-size: 13px;
+            transition: all var(--transition);
+        }
+        .theme-btn:hover { background: var(--primary-light); color: var(--primary); }
+        .theme-btn.active { background: var(--primary); color: #fff; }
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 20px;
+        }
+        .hero {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .hero h1 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary), #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero p {
+            font-size: 15px;
+            color: var(--text-2);
+            line-height: 1.6;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        .upload-card {
+            width: 100%;
+            max-width: 640px;
+            background: var(--surface);
+            border-radius: var(--r-xl);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .upload-card-body { padding: 28px 28px 24px; }
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--r-lg);
+            padding: 44px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition);
+            background: var(--surface-2);
+            position: relative;
+        }
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+        .drop-zone.drag-over { transform: scale(1.005); border-style: solid; }
+        .drop-zone-icon {
+            width: 52px; height: 52px;
+            margin: 0 auto 14px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+        }
+        .drop-zone:hover .drop-zone-icon { transform: translateY(-2px); }
+        .drop-zone-icon svg { width: 24px; height: 24px; color: var(--primary); }
+        .drop-zone-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: var(--text-1); }
+        .drop-zone-hint { font-size: 12px; color: var(--text-3); margin-bottom: 12px; }
+        .drop-zone-formats {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .format-tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-3);
+            font-family: var(--font-mono);
+            letter-spacing: 0.5px;
+        }
+        .file-input-hidden { display: none; }
+        .file-preview {
+            display: none;
+            margin-top: 14px;
+            padding: 12px 14px;
+            background: var(--surface-2);
+            border-radius: var(--r-md);
+            border: 1px solid var(--border);
+            align-items: center;
+            gap: 12px;
+        }
+        .file-preview.show { display: flex; }
+        .file-preview-thumb {
+            width: 48px; height: 48px;
+            border-radius: var(--r-sm);
+            overflow: hidden;
+            flex-shrink: 0;
+            background: var(--surface-3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+        }
+        .file-preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .file-preview-thumb svg { width: 20px; height: 20px; color: var(--primary); }
+        .file-preview-info { flex: 1; min-width: 0; }
+        .file-preview-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-preview-meta { font-size: 11px; color: var(--text-3); display: flex; gap: 8px; margin-top: 2px; }
+        .file-preview-remove {
+            width: 28px; height: 28px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: var(--text-3);
+            font-size: 18px;
+            border-radius: var(--r-xs);
+            transition: all var(--transition);
+        }
+        .file-preview-remove:hover { background: var(--danger-light); color: var(--danger); }
+        .submit-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 13px 24px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--r-md);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        .submit-btn:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .submit-btn:active:not(:disabled) { transform: translateY(0); }
+        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .submit-btn svg { width: 18px; height: 18px; }
+        .progress-section { display: none; margin-top: 16px; }
+        .progress-section.show { display: block; }
+        .progress-bar-track {
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #7c3aed);
+            border-radius: 2px;
+            transition: width .5s ease;
+            width: 0%;
+        }
+        .progress-steps {
+            margin-top: 14px;
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+        }
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 11px;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: var(--border);
+        }
+        .progress-step {
+            font-size: 10px;
+            color: var(--text-3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+            z-index: 1;
+        }
+        .progress-step .step-dot {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            transition: all .3s;
+        }
+        .progress-step.active .step-dot {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+        }
+        .progress-step.done .step-dot {
+            border-color: var(--success);
+            background: var(--success);
+            color: #fff;
+        }
+        .progress-step.active { color: var(--primary); font-weight: 600; }
+        .progress-step.done { color: var(--success); }
+        .features {
+            margin-top: 36px;
+            width: 100%;
+            max-width: 640px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .feature-item {
+            padding: 18px 14px;
+            background: var(--surface);
+            border-radius: var(--r-md);
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: all var(--transition);
+        }
+        .feature-item:hover { border-color: var(--primary); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+        .feature-icon {
+            width: 36px; height: 36px;
+            margin: 0 auto 10px;
+            background: var(--primary-light);
+            border-radius: var(--r-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .feature-icon svg { width: 18px; height: 18px; color: var(--primary); }
+        .feature-item h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .feature-item p { font-size: 11px; color: var(--text-3); line-height: 1.4; }
+        .footer {
+            padding: 16px 20px;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-3);
+            border-top: 1px solid var(--border-lt);
+        }
+        .kbd {
+            display: inline-block;
+            padding: 1px 5px;
+            font-size: 10px;
+            font-family: var(--font-mono);
+            background: var(--surface-3);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--text-3);
+        }
+        @media (max-width: 640px) {
+            .features { grid-template-columns: 1fr; }
+            .upload-card-body { padding: 20px 16px; }
+            .hero h1 { font-size: 22px; }
+            .progress-steps { gap: 2px; }
+            .progress-step { font-size: 9px; }
+            .header-logo .logo-sub { display: none; }
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        .animate-spin { animation: spin 1s linear infinite; }
+        .animate-pulse { animation: pulse 2s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>工图智能纠错平台</span>
+            <span class="logo-sub">Engineering Drawing Intelligent Error Correction</span>
+        </div>
+        <nav class="header-nav">
+            <div class="theme-group">
+                <button class="theme-btn" data-theme="light" onclick="setTheme('light')" title="浅色模式">☀</button>
+                <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')" title="深色模式">🌙</button>
+                <button class="theme-btn" data-theme="eye" onclick="setTheme('eye')" title="护眼模式">👁</button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="main">
+        <div class="hero">
+            <h1>工程图纸智能纠错</h1>
+            <p>上传机械零件图纸，系统自动执行多模态感知、国标硬规则校验与AI智能纠错分析</p>
+        </div>
+
+        <div class="upload-card">
+            <div class="upload-card-body">
+                <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        </div>
+                        <div class="drop-zone-title">拖拽图纸到此处，或点击选择文件</div>
+                        <div class="drop-zone-hint">支持单张图纸上传，建议分辨率不低于 1920×1080</div>
+                        <div class="drop-zone-formats">
+                            <span class="format-tag">PNG</span>
+                            <span class="format-tag">JPG</span>
+                            <span class="format-tag">JPEG</span>
+                            <span class="format-tag">GIF</span>
+                            <span class="format-tag">BMP</span>
+                        </div>
+                        <input type="file" name="file" id="fileInput" accept="image/*" class="file-input-hidden" required>
+                    </div>
+                    <div class="file-preview" id="filePreview">
+                        <div class="file-preview-thumb" id="fileThumb">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        </div>
+                        <div class="file-preview-info">
+                            <div class="file-preview-name" id="fileName"></div>
+                            <div class="file-preview-meta">
+                                <span id="fileSize"></span>
+                                <span id="fileDims"></span>
+                            </div>
+                        </div>
+                        <button type="button" class="file-preview-remove" id="removeFile" title="移除文件">&times;</button>
+                    </div>
+                    <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        开始智能纠错分析
+                    </button>
+                    <div class="progress-section" id="progressSection">
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-steps">
+                            <div class="progress-step active" id="step1"><span class="step-dot">1</span>图纸解析</div>
+                            <div class="progress-step" id="step2"><span class="step-dot">2</span>特征识别</div>
+                            <div class="progress-step" id="step3"><span class="step-dot">3</span>规范校验</div>
+                            <div class="progress-step" id="step4"><span class="step-dot">4</span>AI分析</div>
+                            <div class="progress-step" id="step5"><span class="step-dot">5</span>报告生成</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <h3>多模态感知</h3>
+                <p>YOLOv8 + PaddleOCR + OpenCV<br>几何检测联合识别</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h3>国标硬规则</h3>
+                <p>GB/T 4457-4460<br>尺寸/线型/公差/符号校验</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                </div>
+                <h3>苏格拉底引导</h3>
+                <p>AI深度分析<br>启发式教学反馈</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        工图智能纠错多模态智能体系统 &copy; 2026 &nbsp;|&nbsp; 依据 GB/T 4457-4460 国家标准 &nbsp;|&nbsp; 快捷键 <span class="kbd">Ctrl+V</span> 粘贴上传
+    </footer>
+
+    <script>
+    (function(){
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const filePreview = document.getElementById('filePreview');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const fileDims = document.getElementById('fileDims');
+        const fileThumb = document.getElementById('fileThumb');
+        const removeFile = document.getElementById('removeFile');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const progressSection = document.getElementById('progressSection');
+        const progressFill = document.getElementById('progressFill');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if(e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                showPreview(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', () => {
+            if(fileInput.files.length) showPreview(fileInput.files[0]);
+        });
+        removeFile.addEventListener('click', () => {
+            fileInput.value = '';
+            filePreview.classList.remove('show');
+            submitBtn.disabled = true;
+            fileThumb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+        });
+
+        function showPreview(file) {
+            var ext = file.name.split('.').pop().toLowerCase();
+            var allowed = ['png','jpg','jpeg','gif','bmp'];
+            if (allowed.indexOf(ext) === -1) {
+                alert('不支持的文件格式: .' + ext + '\n请上传 PNG/JPG/JPEG/GIF/BMP 格式的图纸');
+                fileInput.value = '';
+                return;
+            }
+            if (file.size > 50 * 1024 * 1024) {
+                alert('文件大小超过50MB限制，请压缩后重试');
+                fileInput.value = '';
+                return;
+            }
+            fileName.textContent = file.name;
+            fileSize.textContent = formatSize(file.size);
+            fileDims.textContent = '';
+            if (file.type.startsWith('image/')) {
+                var url = URL.createObjectURL(file);
+                var img = new Image();
+                img.onload = function() {
+                    fileDims.textContent = img.width + '×' + img.height;
+                    URL.revokeObjectURL(url);
+                };
+                img.src = url;
+                fileThumb.innerHTML = '';
+                var thumbImg = document.createElement('img');
+                thumbImg.src = url;
+                fileThumb.appendChild(thumbImg);
+            }
+            filePreview.classList.add('show');
+            submitBtn.disabled = false;
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+            return (bytes/1024/1024).toFixed(2) + ' MB';
+        }
+
+        document.addEventListener('paste', function(e) {
+            var items = e.clipboardData && e.clipboardData.items;
+            if (!items) return;
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    var blob = items[i].getAsFile();
+                    var dt = new DataTransfer();
+                    dt.items.add(blob);
+                    fileInput.files = dt.files;
+                    showPreview(blob);
+                    break;
+                }
+            }
+        });
+
+        uploadForm.addEventListener('submit', function() {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<svg class="animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> 分析中...';
+            progressSection.classList.add('show');
+            var steps = ['step1','step2','step3','step4','step5'];
+            var timings = [8, 20, 40, 75, 95];
+            timings.forEach(function(pct, i) {
+                setTimeout(function() {
+                    progressFill.style.width = pct + '%';
+                    steps.forEach(function(s, j) {
+                        var el = document.getElementById(s);
+                        el.classList.remove('active','done');
+                        if(j < i) el.classList.add('done');
+                        else if(j === i) el.classList.add('active');
+                    });
+                }, (i + 1) * 2500);
+            });
+        });
+
+        window.setTheme = function(t) {
+            document.documentElement.setAttribute('data-theme', t);
+            localStorage.setItem('theme', t);
+            document.querySelectorAll('.theme-btn').forEach(function(btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-theme') === t);
+            });
+        };
+        var saved = localStorage.getItem('theme') || 'light';
+        setTheme(saved);
+    })();
+    </script>
+</body>
+</html>
