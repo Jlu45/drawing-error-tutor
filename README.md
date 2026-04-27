@@ -8,7 +8,12 @@
 
 ## 🎬 演示视频
 
-https://github.com/Jlu45/drawing-error-tutor/raw/main/docs/assets/演示视频.mp4
+> 📌 演示视频文件较大，请将视频上传至 Bilibili / YouTube 等平台后，在此处替换为视频链接。
+>
+> 本地视频文件位于 `docs/assets/演示视频.mp4`（需自行放置，未纳入 Git 仓库）
+
+<!-- 替换下方链接为你的视频地址 -->
+<!-- [![演示视频](https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=VIDEO_ID) -->
 
 ## ✨ 功能特性
 
