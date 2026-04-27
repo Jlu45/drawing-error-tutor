@@ -169,7 +169,7 @@ drawing-error-tutor/
 │   ├── Dockerfile                      # [容器] Docker 镜像构建文件
 │   ├── docker-compose.yml              # [容器] Docker Compose 编排配置
 │   ├── skill.json                      # [技能] 技能元数据，描述能力/配置/端点/错误分类
-│   ├── SKILL.md                        # [技能] Trae IDE 技能定义入口文件
+│   ├── SKILL.md                        # [技能] 技能定义入口文件
 │   ├── LICENSE                         # [法律] MIT 开源许可协议
 │   ├── README.md                       # [文档] 项目说明文档（本文件）
 │   └── CHANGELOG.md                    # [文档] 版本变更记录
