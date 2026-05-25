@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>纠错分析 - 工图智能纠错平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #dbeafe;
+            --primary-bg: #eff6ff;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --danger-bg: #fef2f2;
+            --warning: #d97706;
+            --warning-light: #fffbeb;
+            --warning-bg: #fffbeb;
+            --success: #16a34a;
+            --success-light: #f0fdf4;
+            --success-bg: #f0fdf4;
+            --info: #0284c7;
+            --info-light: #f0f9ff;
+            --info-bg: #f0f9ff;
+            --purple: #7c3aed;
+            --purple-light: #f5f3ff;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --surface-3: #f1f5f9;
+            --text-1: #0f172a;
+            --text-2: #475569;
+            --text-3: #94a3b8;
+            --border: #e2e8f0;
+            --border-lt: #f1f5f9;
+            --shadow-xs: 0 1px 2px rgba(0,0,0,.05);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,.08), 0 2px 4px -2px rgba(0,0,0,.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.04);
+            --r-xs: 3px;
+            --r-sm: 5px;
+            --r-md: 8px;
+            --r-lg: 12px;
+            --r-xl: 16px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            --hdr: 48px;
+            --ftr: 28px;
+            --sidebar-w: 380px;
+            --transition: .2s cubic-bezier(.4,0,.2,1);
+        }
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-2: #1e293b;
+            --surface-3: #334155;
+            --text-1: #f1f5f9;
+            --text-2: #94a3b8;
+            --text-3: #64748b;
+            --border: #334155;
+            --border-lt: #1e293b;
+            --primary-light: #1e3a5f;
+            --primary-bg: #172554;
+            --danger-light: #450a0a;
+            --danger-bg: #450a0a;
+            --warning-light: #451a03;
+            --warning-bg: #451a03;
+            --success-light: #052e16;
+            --success-bg: #052e16;
+            --info-light: #0c4a6e;
+            --info-bg: #0c4a6e;
+            --purple-light: #2e1065;
+            --shadow-xs: 0 1px 2px rgba(0,0,0,.2);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+            --shadow-md: 0 4px 6px rgba(0,0,0,.3);
+        }
+        [data-theme="eye"] {
+            --bg: #f5f0e1;
+            --surface: #faf6eb;
+            --surface-2: #f5f0e1;
+            --surface-3: #ece5d5;
+            --text-1: #3d3529;
+            --text-2: #6b6052;
+            --text-3: #9a8e7e;
+            --border: #d9d0c3;
+            --border-lt: #e5ddd0;
+            --primary-light: #d4c9a8;
+            --primary-bg: #e8e0c8;
+            --danger-light: #f5e0d0;
+            --danger-bg: #f5e0d0;
+            --warning-light: #f5ecd0;
+            --warning-bg: #f5ecd0;
+            --success-light: #e0ecd0;
+            --success-bg: #e0ecd0;
+            --info-light: #d0e0f0;
+            --info-bg: #d0e0f0;
+            --purple-light: #e0d8f0;
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        html{font-size:13px;-webkit-font-smoothing:antialiased}
+        body{font-family:var(--font);background:var(--bg);color:var(--text-1);height:100vh;display:flex;flex-direction:column;overflow:hidden;transition:background var(--transition),color var(--transition)}
+        a{color:var(--primary);text-decoration:none}
+        .hdr{height:var(--hdr);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0;z-index:100}
+        .hdr-logo{display:flex;align-items:center;gap:7px;font-weight:700;font-size:13px;color:var(--primary);white-space:nowrap}
+        .hdr-logo svg{width:20px;height:20px}
+        .hdr-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+        .hdr-breadcrumb{font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px}
+        .hdr-breadcrumb a:hover{color:var(--primary)}
+        .hdr-breadcrumb .current{color:var(--text-2);font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .hdr-actions{margin-left:auto;display:flex;gap:4px;align-items:center}
+        .btn-icon{width:30px;height:30px;border:1px solid var(--border);border-radius:var(--r-xs);background:var(--surface-2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-2);font-size:13px;transition:all var(--transition)}
+        .btn-icon:hover{background:var(--primary-light);color:var(--primary);border-color:var(--primary)}
+        .btn-icon.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .btn-sm{padding:5px 12px;border:1px solid var(--border);border-radius:var(--r-xs);background:var(--surface);cursor:pointer;font-size:11px;color:var(--text-2);transition:all var(--transition);display:flex;align-items:center;gap:4px;white-space:nowrap}
+        .btn-sm:hover{border-color:var(--primary);color:var(--primary)}
+        .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .btn-primary:hover{background:var(--primary-hover)}
+        .theme-group{display:flex;border:1px solid var(--border);border-radius:var(--r-xs);overflow:hidden}
+        .theme-btn{width:28px;height:28px;border:none;background:var(--surface-2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;transition:all var(--transition)}
+        .theme-btn:hover{background:var(--primary-light);color:var(--primary)}
+        .theme-btn.active{background:var(--primary);color:#fff}
+        .layout{flex:1;display:flex;overflow:hidden}
+        .canvas-area{flex:1;display:flex;flex-direction:column;background:var(--surface-3);position:relative;min-width:0}
+        .canvas-toolbar{height:34px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 6px;gap:2px;flex-shrink:0}
+        .tool-btn{width:26px;height:26px;border:none;background:none;cursor:pointer;border-radius:var(--r-xs);color:var(--text-2);font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .1s}
+        .tool-btn:hover{background:var(--primary-light);color:var(--primary)}
+        .tool-btn.active{background:var(--primary);color:#fff}
+        .tool-sep{width:1px;height:16px;background:var(--border);margin:0 3px}
+        .tool-zoom{font-size:10px;color:var(--text-3);font-family:var(--font-mono);min-width:44px;text-align:center;user-select:none}
+        .tool-label{font-size:10px;color:var(--text-3);margin-left:auto;user-select:none}
+        .canvas-wrap{flex:1;overflow:hidden;position:relative;cursor:crosshair;background:var(--surface-3)}
+        .canvas-inner{position:absolute;transform-origin:0 0;will-change:transform}
+        .canvas-inner img{display:block;user-select:none;-webkit-user-drag:none;background:#fff;box-shadow:var(--shadow-md)}
+        .canvas-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+        .annotation-marker{position:absolute;pointer-events:auto;cursor:pointer;transform:translate(-50%,-50%);z-index:20;transition:transform .15s}
+        .annotation-marker:hover{transform:translate(-50%,-50%) scale(1.3);z-index:30}
+        .annotation-marker .marker-dot{width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+        .annotation-marker.sev-high .marker-dot{background:var(--danger)}
+        .annotation-marker.sev-medium .marker-dot{background:var(--warning)}
+        .annotation-marker.sev-low .marker-dot{background:var(--info)}
+        .annotation-marker.active .marker-dot{box-shadow:0 0 0 3px rgba(37,99,235,.4),0 1px 4px rgba(0,0,0,.3);transform:scale(1.2)}
+        .annotation-marker .marker-label{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;font-size:9px;white-space:nowrap;background:var(--surface);padding:1px 5px;border-radius:3px;box-shadow:var(--shadow-sm);color:var(--text-2);border:1px solid var(--border);opacity:0;transition:opacity .15s;pointer-events:none}
+        .annotation-marker:hover .marker-label{opacity:1}
+        .magnifier{position:absolute;width:160px;height:160px;border:2px solid var(--primary);border-radius:50%;overflow:hidden;pointer-events:none;z-index:50;display:none;box-shadow:var(--shadow-lg)}
+        .magnifier img{position:absolute}
+        .sidebar{width:var(--sidebar-w);background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;transition:width .25s var(--transition)}
+        .sidebar.collapsed{width:0;border:none;overflow:hidden}
+        .sidebar-header{padding:10px 12px 0;flex-shrink:0}
+        .sidebar-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+        .sidebar-tab{flex:1;padding:9px 4px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;border:none;border-bottom:2px solid transparent;color:var(--text-3);transition:all var(--transition);background:none}
+        .sidebar-tab:hover{color:var(--text-2)}
+        .sidebar-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+        .sidebar-tab .tab-badge{display:inline-block;min-width:16px;height:16px;line-height:16px;padding:0 4px;font-size:9px;font-weight:700;border-radius:8px;background:var(--primary);color:#fff;margin-left:3px;vertical-align:middle}
+        .sidebar-content{flex:1;overflow-y:auto;padding:10px 12px}
+        .sidebar-content::-webkit-scrollbar{width:4px}
+        .sidebar-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+        .sidebar-content::-webkit-scrollbar-track{background:transparent}
+        .filter-bar{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
+        .filter-chip{font-size:10px;padding:3px 8px;border-radius:10px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;color:var(--text-2);transition:all var(--transition);white-space:nowrap}
+        .filter-chip:hover{border-color:var(--primary);color:var(--primary)}
+        .filter-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .score-card{display:flex;align-items:center;gap:14px;padding:14px;background:var(--surface-2);border-radius:var(--r-md);border:1px solid var(--border-lt);margin-bottom:10px}
+        .score-ring{width:56px;height:56px;position:relative;flex-shrink:0}
+        .score-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+        .score-ring circle{fill:none;stroke-width:4}
+        .score-ring .bg{stroke:var(--border-lt)}
+        .score-ring .fg{stroke:var(--primary);stroke-linecap:round;transition:stroke-dashoffset .8s ease}
+        .score-value{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
+        .score-info h3{font-size:12px;font-weight:600;margin-bottom:2px}
+        .score-info p{font-size:10px;color:var(--text-3);line-height:1.4}
+        .score-good .fg{stroke:var(--success)}.score-good .score-value{color:var(--success)}
+        .score-mid .fg{stroke:var(--warning)}.score-mid .score-value{color:var(--warning)}
+        .score-bad .fg{stroke:var(--danger)}.score-bad .score-value{color:var(--danger)}
+        .error-list{display:flex;flex-direction:column;gap:5px}
+        .error-card{padding:9px 10px;border-radius:var(--r-md);border-left:3px solid;cursor:pointer;transition:all var(--transition)}
+        .error-card:hover{box-shadow:var(--shadow-sm);transform:translateX(1px)}
+        .error-card.active{box-shadow:var(--shadow-md);transform:translateX(2px)}
+        .error-card.sev-high{border-left-color:var(--danger);background:var(--danger-bg)}
+        .error-card.sev-medium{border-left-color:var(--warning);background:var(--warning-bg)}
+        .error-card.sev-low{border-left-color:var(--info);background:var(--info-bg)}
+        .error-card-head{display:flex;align-items:center;gap:5px;margin-bottom:3px;flex-wrap:wrap}
+        .error-type{font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;color:#fff}
+        .error-type.t-dim{background:var(--primary)}.error-type.t-line{background:var(--purple)}.error-type.t-tol{background:var(--warning)}.error-type.t-title{background:#78716c}.error-type.t-sym{background:var(--info)}.error-type.t-other{background:var(--text-3)}
+        .error-sev{font-size:9px;font-weight:600;padding:1px 4px;border-radius:3px}
+        .error-sev.s-high{background:var(--danger);color:#fff}.error-sev.s-medium{background:var(--warning);color:#fff}.error-sev.s-low{background:var(--info);color:#fff}
+        .error-source{font-size:9px;padding:1px 4px;border-radius:3px;background:var(--surface);border:1px solid var(--border);color:var(--text-3)}
+        .error-desc{font-size:11px;line-height:1.5;color:var(--text-1);margin-bottom:3px}
+        .error-suggest{font-size:10px;color:var(--primary)}
+        .error-actions{display:flex;gap:4px;margin-top:5px}
+        .error-action-btn{font-size:9px;padding:2px 6px;border:1px solid var(--border);border-radius:3px;background:var(--surface);cursor:pointer;color:var(--text-2);transition:all var(--transition)}
+        .error-action-btn:hover{border-color:var(--primary);color:var(--primary)}
+        .feedback-card{padding:9px 10px;background:var(--info-bg);border-left:3px solid var(--info);border-radius:var(--r-md);margin-bottom:5px;font-size:11px;line-height:1.6}
+        .kb-card{padding:9px 10px;background:var(--success-bg);border-left:3px solid var(--success);border-radius:var(--r-md);margin-bottom:5px}
+        .kb-card strong{font-size:11px;display:block;margin-bottom:2px}
+        .kb-card p{font-size:10px;color:var(--text-2);line-height:1.5;margin-bottom:2px}
+        .kb-card small{font-size:9px;color:var(--text-3)}
+        .llm-card{padding:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:6px}
+        .llm-card pre{font-family:var(--font-mono);font-size:10px;line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow-y:auto;color:var(--text-2)}
+        .llm-meta{font-size:9px;color:var(--text-3);margin-bottom:5px}
+        #llmParsed h2{font-size:14px;font-weight:700;color:var(--primary);margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border-lt)}
+        #llmParsed h2:first-child{margin-top:0}
+        #llmParsed p{font-size:11px;line-height:1.7;color:var(--text-1);margin:4px 0}
+        #llmParsed strong{color:var(--primary);font-weight:600}
+        #llmParsed table{width:100%;border-collapse:collapse;margin:8px 0;font-size:10px}
+        #llmParsed table th{background:var(--primary-light);color:var(--primary);font-weight:600;padding:5px 8px;text-align:left;border:1px solid var(--border);font-size:10px}
+        #llmParsed table td{padding:4px 8px;border:1px solid var(--border);color:var(--text-2);vertical-align:top}
+        #llmParsed table tr:nth-child(even) td{background:var(--surface-3)}
+        #llmParsed ul,#llmParsed ol{padding-left:18px;margin:4px 0}
+        #llmParsed li{font-size:11px;line-height:1.6;color:var(--text-2);margin:2px 0}
+        #llmParsed li::marker{color:var(--primary)}
+        #llmParsed code{font-family:var(--font-mono);font-size:10px;background:var(--surface-3);padding:1px 4px;border-radius:3px;color:var(--purple)}
+        #llmParsed blockquote{border-left:3px solid var(--primary);padding:4px 10px;margin:6px 0;background:var(--primary-bg);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:11px;color:var(--text-2)}
+        #llmParsed hr{border:none;border-top:1px solid var(--border);margin:8px 0}
+        .tab-panel{display:none}.tab-panel.active{display:block}
+        .sec-title{font-size:11px;font-weight:700;color:var(--text-2);margin:10px 0 6px;padding-bottom:3px;border-bottom:1px solid var(--border-lt);display:flex;align-items:center;justify-content:space-between}
+        .sec-title:first-child{margin-top:0}
+        .sec-count{font-size:9px;font-weight:400;color:var(--text-3)}
+        .ftr{height:var(--ftr);background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 10px;font-size:9px;color:var(--text-3);gap:14px;flex-shrink:0}
+        .ftr-dot{width:5px;height:5px;border-radius:50%;background:var(--success);display:inline-block;margin-right:3px}
+        .ftr-sep{width:1px;height:10px;background:var(--border)}
+        .ocr-table{width:100%;border-collapse:collapse;font-size:10px}
+        .ocr-table th{text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--text-3);font-weight:600}
+        .ocr-table td{padding:3px 6px;border-bottom:1px solid var(--border-lt)}
+        .ocr-conf{font-family:var(--font-mono);font-size:9px;color:var(--text-3)}
+        .empty{text-align:center;padding:20px;color:var(--text-3);font-size:11px}
+        .search-box{width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:11px;background:var(--surface-2);color:var(--text-1);margin-bottom:8px;transition:border-color var(--transition)}
+        .search-box:focus{outline:none;border-color:var(--primary)}
+        .search-box::placeholder{color:var(--text-3)}
+        .kbd{display:inline-block;padding:0 3px;font-size:9px;font-family:var(--font-mono);background:var(--surface-3);border:1px solid var(--border);border-radius:2px;color:var(--text-3)}
+        .stats-bar{display:flex;gap:6px;margin-bottom:10px}
+        .stat-item{flex:1;text-align:center;padding:6px 4px;background:var(--surface-2);border-radius:var(--r-sm);border:1px solid var(--border-lt)}
+        .stat-num{font-size:16px;font-weight:700;line-height:1}
+        .stat-num.c-danger{color:var(--danger)}.stat-num.c-warning{color:var(--warning)}.stat-num.c-info{color:var(--info)}
+        .stat-label{font-size:9px;color:var(--text-3);margin-top:2px}
+
+        .phase-bar-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+        .phase-bar-label{font-size:10px;font-weight:600;color:var(--text-2);min-width:72px;white-space:nowrap}
+        .phase-bar-track{flex:1;height:14px;background:var(--surface-3);border-radius:7px;overflow:hidden;position:relative}
+        .phase-bar-fill{height:100%;border-radius:7px;transition:width .6s ease;min-width:2px}
+        .phase-bar-fill.c-planning{background:linear-gradient(90deg,#7c3aed,#a855f7)}
+        .phase-bar-fill.c-perception{background:linear-gradient(90deg,#2563eb,#60a5fa)}
+        .phase-bar-fill.c-rule-check{background:linear-gradient(90deg,#d97706,#fbbf24)}
+        .phase-bar-fill.c-llm-analysis{background:linear-gradient(90deg,#dc2626,#f87171)}
+        .phase-bar-fill.c-fusion{background:linear-gradient(90deg,#16a34a,#4ade80)}
+        .phase-bar-fill.c-vlm-judge{background:linear-gradient(90deg,#0284c7,#38bdf8)}
+        .phase-bar-time{font-size:9px;font-family:var(--font-mono);color:var(--text-3);min-width:52px;text-align:right}
+
+        .contract-stats{display:flex;gap:6px;margin-bottom:8px}
+        .contract-stat{flex:1;text-align:center;padding:6px 4px;background:var(--surface-2);border-radius:var(--r-sm);border:1px solid var(--border-lt)}
+        .contract-stat-num{font-size:16px;font-weight:700;line-height:1}
+        .contract-stat-label{font-size:9px;color:var(--text-3);margin-top:2px}
+        .contract-pct{font-size:11px;font-weight:600;color:var(--success);margin-bottom:8px}
+        .contract-list{display:flex;flex-direction:column;gap:4px}
+        .contract-item{display:flex;align-items:center;gap:6px;font-size:10px;padding:4px 8px;background:var(--surface-2);border-radius:var(--r-sm);border:1px solid var(--border-lt)}
+        .contract-item .ci-icon{font-size:12px;flex-shrink:0}
+        .contract-item .ci-name{flex:1;color:var(--text-2)}
+        .contract-item .ci-status{font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px}
+        .ci-status.s-completed{background:var(--success-bg);color:var(--success)}
+        .ci-status.s-failed{background:var(--danger-bg);color:var(--danger)}
+        .ci-status.s-pending{background:var(--surface-3);color:var(--text-3)}
+
+        .rollback-card{padding:8px 10px;background:var(--warning-bg);border-left:3px solid var(--warning);border-radius:var(--r-md);margin-bottom:6px;font-size:10px;line-height:1.5}
+        .rollback-card strong{color:var(--warning)}
+
+        .experience-card{padding:8px 10px;background:var(--purple-light);border-left:3px solid var(--purple);border-radius:var(--r-md);margin-bottom:6px;font-size:10px;line-height:1.5}
+
+        .judge-section{margin-top:6px}
+        .radar-wrap{display:flex;justify-content:center;margin:8px 0}
+        .judge-comment{font-size:10px;color:var(--text-2);line-height:1.5;padding:6px 8px;background:var(--surface-2);border-radius:var(--r-sm);border:1px solid var(--border-lt);margin-top:6px}
+        .judge-suggestions{margin-top:6px}
+        .judge-sug-item{font-size:10px;color:var(--text-2);padding:3px 0;padding-left:12px;position:relative}
+        .judge-sug-item::before{content:'→';position:absolute;left:0;color:var(--primary)}
+
+        @media(max-width:1024px){.sidebar{width:320px}
+}
+        @media(max-width:768px){
+            .sidebar{position:absolute;right:0;top:var(--hdr);bottom:var(--ftr);z-index:50;box-shadow:-4px 0 12px rgba(0,0,0,.1);width:300px}
+            .sidebar.collapsed{width:0}
+            .hdr-breadcrumb .current{max-width:120px}
+        }
+        @media(max-width:480px){
+            .sidebar{width:100%}
+            .hdr-actions .btn-sm span{display:none}
+        }
+        @media print{
+            .hdr,.ftr,.canvas-toolbar,.sidebar{display:none!important}
+            .canvas-area{position:static!important}
+            .canvas-wrap{overflow:visible!important}
+        }
+    </style>
+</head>
+<body>
+    <header class="hdr">
+        <div class="hdr-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            工图纠错
+        </div>
+        <div class="hdr-sep"></div>
+        <div class="hdr-breadcrumb">
+            <a href="/">首页</a> <span style="color:var(--text-3)">›</span> <span class="current">{{ filename }}</span>
+        </div>
+        <div class="hdr-actions">
+            <button class="btn-icon" onclick="toggleSidebar()" title="切换侧栏 (Tab)">⊞</button>
+            <div class="theme-group">
+                <button class="theme-btn" data-theme="light" onclick="setTheme('light')" title="浅色">☀</button>
+                <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')" title="深色">🌙</button>
+                <button class="theme-btn" data-theme="eye" onclick="setTheme('eye')" title="护眼">👁</button>
+            </div>
+            <button class="btn-sm btn-primary" onclick="exportReport()" title="导出报告"><span>📄</span> <span>导出</span></button>
+            <a href="/" class="btn-sm" title="上传新图纸"><span>↑</span> <span>新图纸</span></a>
+        </div>
+    </header>
+
+    <div class="layout">
+        <div class="canvas-area">
+            <div class="canvas-toolbar">
+                <button class="tool-btn" onclick="zoomBy(-0.15)" title="缩小 (-)">−</button>
+                <span class="tool-zoom" id="zoomLevel">100%</span>
+                <button class="tool-btn" onclick="zoomBy(0.15)" title="放大 (+)">+</button>
+                <button class="tool-btn" onclick="zoomFit()" title="适应窗口 (F)">⊡</button>
+                <button class="tool-btn" onclick="zoomReset()" title="1:1原始尺寸 (0)">1:1</button>
+                <div class="tool-sep"></div>
+                <button class="tool-btn" id="btnInvert" onclick="toggleInvert()" title="反色模式 (I)">◐</button>
+                <button class="tool-btn" id="btnMagnifier" onclick="toggleMagnifier()" title="放大镜 (M)">🔍</button>
+                <div class="tool-sep"></div>
+                <button class="tool-btn" id="btnAnnotations" onclick="toggleAnnotations()" title="标注显示/隐藏 (A)">📌</button>
+                <div class="tool-sep"></div>
+                <span class="tool-label">滚轮缩放 · 中键平移 · <span class="kbd">A</span> 标注 · <span class="kbd">F</span> 适应</span>
+            </div>
+            <div class="canvas-wrap" id="canvasWrap">
+                <div class="canvas-inner" id="canvasInner">
+                    <img id="drawingImg" src="{{ url_for('uploaded_file', filename=filename) }}" alt="图纸" draggable="false" onload="onImgLoad()">
+                </div>
+                <div class="canvas-overlay" id="canvasOverlay" style="display:none"></div>
+                <div class="magnifier" id="magnifier"><img id="magImg" src="{{ url_for('uploaded_file', filename=filename) }}" alt=""></div>
+            </div>
+        </div>
+
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" onclick="switchTab('errors')">纠错详情 <span class="tab-badge" id="errorBadge">{{ errors|length }}</span></button>
+                <button class="sidebar-tab" onclick="switchTab('analysis')">AI分析</button>
+                <button class="sidebar-tab" onclick="switchTab('knowledge')">知识库</button>
+                <button class="sidebar-tab" onclick="switchTab('v2')">系统面板</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="tab-panel active" id="panel-errors">
+                    {% if report and report.summary %}
+                    <div class="score-card {% if report.summary.overall_score >= 80 %}score-good{% elif report.summary.overall_score >= 50 %}score-mid{% else %}score-bad{% endif %}">
+                        <div class="score-ring">
+                            <svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9" stroke-dasharray="{{ report.summary.overall_score|default(0) }} {{ 100 - report.summary.overall_score|default(0) }}"/></svg>
+                            <div class="score-value">{{ report.summary.overall_score|default(0) }}</div>
+                        </div>
+                        <div class="score-info">
+                            <h3>综合评分</h3>
+                            <p>{{ report.summary.total_errors|default(0) }}个问题 · {{ report.summary.error_categories|length|default(0) }}个类别</p>
+                            {% if report.summary.llm_summary %}<p style="margin-top:3px;color:var(--text-2)">{{ report.summary.llm_summary[:60] }}</p>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="stats-bar">
+                        <div class="stat-item"><div class="stat-num c-danger">{{ errors|selectattr('severity','eq','高')|list|length + errors|selectattr('severity','eq','high')|list|length }}</div><div class="stat-label">高严重</div></div>
+                        <div class="stat-item"><div class="stat-num c-warning">{{ errors|selectattr('severity','eq','中')|list|length + errors|selectattr('severity','eq','medium')|list|length }}</div><div class="stat-label">中严重</div></div>
+                        <div class="stat-item"><div class="stat-num c-info">{{ errors|selectattr('severity','eq','低')|list|length + errors|selectattr('severity','eq','low')|list|length }}</div><div class="stat-label">低严重</div></div>
+                    </div>
+
+                    <input type="text" class="search-box" id="errorSearch" placeholder="搜索错误描述..." oninput="filterErrors()">
+
+                    <div class="filter-bar" id="filterBar">
+                        <span class="filter-chip active" data-filter="all" onclick="setFilter('all')">全部</span>
+                        <span class="filter-chip" data-filter="high" onclick="setFilter('high')">高严重</span>
+                        <span class="filter-chip" data-filter="medium" onclick="setFilter('medium')">中严重</span>
+                        <span class="filter-chip" data-filter="low" onclick="setFilter('low')">低严重</span>
+                    </div>
+
+                    <div class="sec-title">检测到的问题 <span class="sec-count" id="errorCount">{{ errors|length }}</span></div>
+                    <div class="error-list" id="errorList">
+                    {% if errors %}
+                        {% for error in errors %}
+                            {% if error is mapping %}
+                            <div class="error-card sev-{% set sev_val = error.get('severity','medium')|lower %}{% if sev_val in ['高','high'] %}high{% elif sev_val in ['中','medium'] %}medium{% else %}low{% endif %}" data-severity="{% if sev_val in ['高','high'] %}high{% elif sev_val in ['中','medium'] %}medium{% else %}low{% endif %}" data-type="{{ error.get('type','') }}" data-index="{{ loop.index0 }}" onclick="focusError({{ loop.index0 }})">
+                                <div class="error-card-head">
+                                    {% set type_text = error.get('type','未知') %}
+                                    {% set type_map = {
+                                        'DIMENSION_ERROR':'尺寸标注', 'LINE_TYPE_ERROR':'线型错误', 'TOLERANCE_ERROR':'公差配合',
+                                        'TITLE_BLOCK_ERROR':'标题栏', 'SYMBOL_ERROR':'符号标注',
+                                        'GEOMETRY_INCOMPLETE_ERROR':'几何完整性', 'STRUCTURE_ERROR':'图纸结构',
+                                        'SURFACE_ERROR':'表面粗糙度', 'ROUGHNESS_ERROR':'表面粗糙度',
+                                        'WELD_ERROR':'焊接符号', 'SHEET_ERROR':'图幅规范',
+                                        'VIEW_ERROR':'视图标注', 'GENERAL_ERROR':'其他',
+                                        '尺寸标注':'尺寸标注', '线型错误':'线型错误',
+                                        '公差配合':'公差配合', '标题栏':'标题栏', '符号标注':'符号标注',
+                                        '几何完整性':'几何完整性', '图纸结构':'图纸结构',
+                                        '表面粗糙度':'表面粗糙度', '焊接符号':'焊接符号', '图幅规范':'图幅规范',
+                                        '视图标注':'视图标注',
+                                        '线型':'线型', '公差':'公差', '标题':'标题栏', '符号':'符号',
+                                        '硬规则':'硬规则', 'AI分析':'AI分析', '软规则':'软规则', '图册规则':'图册规则',
+                                        'dimension_error':'尺寸标注', 'line_type_error':'线型错误',
+                                        'tolerance_error':'公差配合', 'title_block_error':'标题栏',
+                                        'symbol_error':'符号标注', 'geometry_incomplete_error':'几何完整性',
+                                        'structure_error':'图纸结构', 'surface_error':'表面粗糙度',
+                                        'roughness_error':'表面粗糙度', 'weld_error':'焊接符号',
+                                        'sheet_error':'图幅规范', 'view_error':'视图标注',
+                                        'general_error':'其他'
+                                    } %}
+                                    {% set display_type = type_map.get(type_text, type_text) if type_text is string else (type_map.get(type_text[0] if type_text else '', type_text)) %}
+                                    <span class="error-type {% if '尺寸' in display_type %}t-dim{% elif '线型' in display_type %}t-line{% elif '公差' in display_type %}t-tol{% elif '标题' in display_type %}t-title{% elif '符号' in display_type %}t-sym{% elif '图册' in display_type %}t-atlas{% elif '视图' in display_type %}t-sym{% elif '表面' in display_type %}t-sym{% else %}t-other{% endif %}">{{ display_type }}</span>
+                                    <span class="error-sev s-{% if sev_val in ['高','high'] %}high{% elif sev_val in ['中','medium'] %}medium{% else %}low{% endif %}">{% if sev_val in ['高','high'] %}高{% elif sev_val in ['中','medium'] %}中{% else %}低{% endif %}</span>
+                                    {% set src = error.source %}
+                                    {% if src %}{% set src_map = {'atlas_rule':'图册规则','rule_check':'规则检查','llm_analysis':'AI分析','base_rule':'基础规则','ocr':'OCR识别','geometry':'几何检测','structure':'结构检测'} %}{% if src is string %}<span class="error-source">{{ src_map.get(src, src) }}</span>{% elif src is iterable and src|length > 0 %}<span class="error-source">{{ src_map.get(src[0], src[0]) if src[0] is string else src[0] }}</span>{% endif %}{% endif %}
+                                    {% if error.get('level') %}<span class="error-source" style="border-color:var(--warning);color:var(--warning)">{{ {'confirmed_error':'确定错误','suspected_issue':'疑似问题','suggestion':'建议'}.get(error.level, error.level) }}</span>{% endif %}
+                                    {% if error.get('source_case_id') %}<span class="error-source" style="border-color:var(--purple);color:var(--purple);cursor:pointer" onclick="event.stopPropagation();showAtlasCase('{{ error.source_case_id }}')">📖 图册参考</span>{% endif %}
+                                </div>
+                                <div class="error-desc">{{ error.get('description','') }}</div>
+                                {% if error.get('suggestion') %}<div class="error-suggest">✏ {{ error.suggestion }}</div>{% endif %}
+                                {% if error.get('teaching_hint') %}<div style="font-size:10px;color:var(--purple);margin-top:2px">💡 {{ error.teaching_hint }}</div>{% endif %}
+                                <div class="error-actions">
+                                    <button class="error-action-btn" onclick="event.stopPropagation();confirmError({{ loop.index0 }})">✓ 确认</button>
+                                    <button class="error-action-btn" onclick="event.stopPropagation();ignoreError({{ loop.index0 }})">✕ 忽略</button>
+                                    {% if error.get('source_case_id') %}<button class="error-action-btn" onclick="event.stopPropagation();showAtlasCase('{{ error.source_case_id }}')" style="border-color:var(--purple);color:var(--purple)">📖 查看图册</button>{% endif %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="error-card sev-medium" data-severity="medium" data-type="" data-index="{{ loop.index0 }}" onclick="focusError({{ loop.index0 }})">
+                                <div class="error-card-head"><span class="error-type t-other">问题</span></div>
+                                <div class="error-desc">{{ error }}</div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty">✅ 未检测到明显错误</div>
+                    {% endif %}
+                    </div>
+
+                    <div class="sec-title">苏格拉底式引导</div>
+                    {% if feedback %}
+                        {% for item in feedback %}
+                        <div class="feedback-card">💬 {{ item }}</div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty">暂无引导反馈</div>
+                    {% endif %}
+
+                    {% if report and report.recommendations %}
+                    <div class="sec-title">学习建议</div>
+                    {% for rec in report.recommendations %}
+                        <div style="font-size:11px;padding:3px 0;color:var(--text-2)">• {{ rec }}</div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="tab-panel" id="panel-analysis">
+                    {% set llm_response = api_result.get('raw_response', '') if api_result else '' %}
+                    {% if not llm_response and raw_response %}
+                        {% set llm_response = raw_response %}
+                    {% endif %}
+                    {% if llm_response %}
+                    <div class="llm-card">
+                        <div class="llm-meta">🤖 {{ api_result.get('model', model) if api_result else model }} {% if api_result and api_result.get('usage') %}| tokens: {{ api_result.usage.get('total_tokens','N/A') if api_result.usage is mapping else 'N/A' }}{% endif %}{% if api_result and api_result.get('model','') == 'local_rule_engine' %} ⚠️ 降级模式{% endif %}</div>
+                        <div id="llmParsed"></div>
+                        <details style="margin-top:8px">
+                            <summary style="cursor:pointer;color:var(--text-3);font-size:11px">查看原始响应</summary>
+                            <pre style="max-height:300px;overflow:auto;font-size:10px">{{ llm_response }}</pre>
+                        </details>
+                    </div>
+                    <script type="application/json" id="llmJsonData">
+{{ llm_response | tojson | safe }}
+                    </script>
+                    {% raw %}
+                    <script>
+                    (function(){
+                        var raw = '';
+                        try {
+                            var jsonEl = document.getElementById('llmJsonData');
+                            if (jsonEl) raw = JSON.parse(jsonEl.textContent);
+                        } catch(e) {
+                            console.warn('[AI解析] JSON解析失败:', e);
+                        }
+                        if (!raw) {
+                            var preEl = document.querySelector('details pre');
+                            if (preEl) raw = preEl.textContent;
+                        }
+                        raw = raw || '';
+                        var container = document.getElementById("llmParsed");
+                        if (!raw || !raw.trim()) { container.innerHTML = '<div class="ai-empty"><span class="ai-empty-icon">🤖</span><p>AI分析结果为空</p></div>'; return; }
+                        console.log('[AI解析] raw类型:', typeof raw, '长度:', raw.length);
+
+                        function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+                        function sh(json) {
+                            json = String(json).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+                            return json.replace(/("(\\u[a-fA-F0-9]{4}|[^"\\])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g, function(m){
+                                if(/^"/.test(m)) return /:$/.test(m) ? '<span class="j-k">'+m+'</span>' : '<span class="j-s">'+m+'</span>';
+                                if(/true|false/.test(m)) return '<span class="j-b">'+m+'</span>';
+                                if(/null/.test(m)) return '<span class="j-n">'+m+'</span>';
+                                return '<span class="j-n">'+m+'</span>';
+                            });
+                        }
+
+                        function stripMarkdownCodeBlock(text) {
+                            var s = text.trim();
+                            s = s.replace(/^```(?:json|JSON)?\s*\n?/i, '');
+                            s = s.replace(/\n?```\s*$/i, '');
+                            return s.trim();
+                        }
+
+                        function renderValue(val, depth) {
+                            if (depth === undefined) depth = 0;
+                            if (val == null) return '<span class="j-n">null</span>';
+                            if (typeof val === "boolean") return '<span class="j-b">'+val+'</span>';
+                            if (typeof val === "number") return '<span class="j-n">'+val+'</span>';
+                            if (typeof val !== "string") return renderObject(val, depth);
+                            var s = val.trim();
+                            if (/^https?:\/\//i.test(s)) return '<a href="'+esc(s)+'" target="_blank" class="ai-link">'+esc(s)+'</a>';
+                            return esc(s);
+                        }
+
+                        function renderObject(obj, depth) {
+                            if (depth === undefined) depth = 0;
+                            if (obj == null) return '<span class="j-n">null</span>';
+                            if (Array.isArray(obj)) {
+                                if (obj.length === 0) return '<span class="j-n">[]</span>';
+                                var h = '<div class="ai-arr">';
+                                obj.forEach(function(item, i){ h += '<div class="ai-arr-item">'+renderValue(item, depth+1)+'</div>'; });
+                                h += '</div>';
+                                return h;
+                            }
+                            if (typeof obj !== "object") return renderValue(obj);
+                            var keys = Object.keys(obj);
+                            if (keys.length === 0) return '<span class="j-n">{}</span>';
+                            var h = '';
+                            keys.forEach(function(k){
+                                var v = obj[k];
+                                if (k === 'errors' && Array.isArray(v) && v.length > 0) { h += renderErrorsSection(v); }
+                                else if (k === 'learning_points' || k === 'suggestions' || k === 'recommendations') { if (Array.isArray(v) && v.length > 0) h += renderListSection(k, v); else if (typeof v === "string" && v.trim()) h += renderListSection(k, [v]); }
+                                else if (k === 'drawing_type' || k === '图纸类型') { h += renderInfoSection("\uD83D\uDCD0", "图纸类型", v); }
+                                else if (k === 'content_summary' || k === '内容概述' || k === 'summary' || k === '总体评价') { var label = {'content_summary':'内容概述','内容概述':'内容概述','summary':'总体评价','总体评价':'总体评价'}[k] || k; h += renderInfoSection("\uD83D\uDCCB", label, v); }
+                                else if (k === 'overall_score' || k === '综合评分' || k === 'score') { h += renderScoreSection(v); }
+                                else if (k === 'analysis' || k === '分析过程' || k === 'details') { h += renderInfoSection("\uD83D\uDD2C", "详细分析", v); }
+                                else if (k === 'conclusion' || k === '结论' || k === 'verdict') { h += renderInfoSection("\uD83D\uDCA1", "结论", v); }
+                                else if (typeof v === "string" && v.length > 60) { h += renderInfoSection("\uD83D\uDCDD", k, v); }
+                                else if (Array.isArray(v)) { if (v.length > 0) h += renderListSection(k, v); }
+                                else if (typeof v === "object" && v !== null) { h += renderInfoSection("\uD83D\uDCCC", k, JSON.stringify(v, null, 2)); }
+                                else { h += renderKeyValue(k, v); }
+                            });
+                            return h;
+                        }
+
+                        function renderInfoSection(icon, title, content) {
+                            var body = typeof content === "object" ? esc(JSON.stringify(content, null, 2)) : esc(String(content));
+                            var formatted = body.replace(/\n/g, '<br>').replace(/(\d+(\.\d+)?)\s*(mm|cm|m|%|±|×|÷|≥|≤|≈|∅|Φ|R)/g, '$1$2');
+                            return '<div class="ai-sec"><div class="ai-sec-head"><span class="ai-sec-icon">'+icon+'</span><span class="ai-sec-title">'+esc(title)+'</span></div><div class="ai-sec-body">'+formatted+'</div></div>';
+                        }
+
+                        function renderScoreSection(score) {
+                            var s = parseFloat(score); if (isNaN(s)) s = 0;
+                            var cls = s >= 80 ? 'sg' : s >= 60 ? 'sm' : 'sp';
+                            var label = s >= 80 ? '优秀' : s >= 60 ? '合格' : '需改进';
+                            return '<div class="ai-sec"><div class="ai-sec-head"><span class="ai-sec-icon">⭐</span><span class="ai-sec-title">综合评分</span></div><div class="ai-sec-body"><div class="ai-score-wrap"><div class="ai-score-bar"><div class="ai-score-fill '+cls+'" style="width:'+Math.min(s,100)+'%"></div></div><div class="ai-score-info"><span class="ai-score-num '+cls+'">'+s.toFixed(1)+'</span><span class="ai-score-label '+cls+'">'+label+'</span><span class="ai-score-max">/ 100</span></div></div></div></div>';
+                        }
+
+                        function renderErrorsSection(errors) {
+                            var h = '<div class="ai-sec"><div class="ai-sec-head"><span class="ai-sec-icon">🔍</span><span class="ai-sec-title">检测到的问题 ('+errors.length+'项)</span></div><div class="ai-sec-body">';
+                            h += '<table class="ai-tbl"><thead><tr><th>严重度</th><th>类型</th><th>问题描述</th><th>修改建议</th></tr></thead><tbody>';
+                            errors.forEach(function(e){
+                                var sev = e.severity || e.level || '中';
+                                var sv = String(sev).toLowerCase();
+                                var sc = sv.indexOf('高')>=0||sv==='high'?'sh':sv.indexOf('中')>=0||sv==='medium'?'sm':'sl';
+                                var sevLabel = sv.indexOf('高')>=0||sv==='high'?'高':sv.indexOf('中')>=0||sv==='medium'?'中':'低';
+                                h += '<tr><td><span class="sev-b '+sc+'">'+sevLabel+'</span></td><td>'+esc(e.type||e.category||'—')+'</td><td>'+esc(e.description||e.desc||e.error||'—')+'</td><td>'+esc(e.suggestion||e.suggest||e.fix||'—')+'</td></tr>';
+                            });
+                            h += '</tbody></table></div></div>';
+                            return h;
+                        }
+
+                        function renderListSection(title, items) {
+                            var labels = {'learning_points':'📚 学习要点','suggestions':'💡 改进建议','recommendations':'📌 建议','学习要点':'📚 学习要点','改进建议':'💡 改进建议'};
+                            var icon = labels[title] ? labels[title].split(' ')[0] : '📌';
+                            var label = labels[title] ? labels[title].substring(2) : title;
+                            var h = '<div class="ai-sec"><div class="ai-sec-head"><span class="ai-sec-icon">'+icon+'</span><span class="ai-sec-title">'+label+'</span></div><div class="ai-sec-body"><ul class="ai-ul">';
+                            items.forEach(function(p){ h += '<li>'+esc(String(p))+'</li>'; });
+                            h += '</ul></div></div>';
+                            return h;
+                        }
+
+                        function renderKeyValue(key, val) {
+                            return '<div class="ai-kv"><span class="ai-kv-k">'+esc(key)+'</span><span class="ai-kv-v">'+renderValue(val)+'</span></div>';
+                        }
+
+                        function tryParseAsMarkdown(text) {
+                            var lines = text.split('\n');
+                            var h = '', inCode=false, inTable=false, inUl=false;
+                            lines.forEach(function(line){
+                                var t = line.trim();
+                                if (t.startsWith('```')) { inCode=!inCode; if(inCode) h+='<pre class="ai-code">'; else h+='</pre>'; return; }
+                                if(inCode){h+=esc(line)+'\n';return;}
+                                if(t.match(/^#{1,3}\s+/)){if(inUl){h+='</ul>';inUl=false;}var lvl=t.match(/^#+/)[0].length;h+='<h'+lvl+' class="ai-md-h'+lvl+'">'+esc(t.replace(/^#+\s+/,''))+'</h'+lvl+'>';}
+                                else if(t.match(/^\s*[-*+]\s+/)){if(!inUl){h+='<ul class="ai-ul">';inUl=true;}h+='<li>'+esc(t.replace(/^\s*[-*+]\s+/,''))+'</li>';}
+                                else if(t.match(/^\d+\.\s+/)){if(!inUl){h+='<ul class="ai-ul">';inUl=true;}h+='<li>'+esc(t.replace(/^\d+\.\s+/,''))+'</li>';}
+                                else if(t.match(/^\|.*\|$/)){if(inUl){h+='</ul>';inUl=false;}if(!inTable){h+='<div class="ai-tbl-wrap"><table class="ai-tbl">';inTable=true;}var cells=t.split('|').filter(function(c){return c.trim();});var isHdr=cells.every(function(c){return /^[\s\-:]+$/.test(c.trim());});if(!isHdr){var tag=isHdr||!h.includes('<tbody')?'thead':'tbody';if(tag==='thead'&&h.includes('</thead>'))tag='tbody';h+='<'+tag+'><tr>';cells.forEach(function(c){h+='<td>'+esc(c.trim())+'</td>';});h+='</tr></'+tag+'>';}}
+                                else if(inTable&&!t.match(/^\|.*\|$/)){h+='</table></div>';inTable=false;if(t)h+='<p class="ai-md-p">'+esc(t)+'</p>';}
+                                else if(t.match(/^>\s+/)){if(inUl){h+='</ul>';inUl=false;}h+='<blockquote class="ai-md-bq">'+esc(t.replace(/^>\s+/,''))+'</blockquote>';}
+                                else if(t===''){if(inUl){h+='</ul>';inUl=false;}if(inTable){h+='</table></div>';inTable=false;}}
+                                else{h+='<p class="ai-md-p">'+esc(t)+'</p>';}
+                            });
+                            if(inUl)h+='</ul>';if(inTable)h+='</table></div>';
+                            return h||null;
+                        }
+
+                        try {
+                            var stripped = stripMarkdownCodeBlock(raw);
+                            var data = null;
+                            var jStart = stripped.indexOf('{');
+                            var jEnd = stripped.lastIndexOf('}');
+                            if (jStart >= 0 && jEnd > jStart) { try { data = JSON.parse(stripped.substring(jStart, jEnd + 1)); } catch(e1) {} }
+                            if (!data) { var aStart = stripped.indexOf('['); var aEnd = stripped.lastIndexOf(']'); if (aStart >= 0 && aEnd > aStart) { try { data = JSON.parse(stripped.substring(aStart, aEnd + 1)); } catch(e2) {} } }
+                            if (data && typeof data === "object") { container.innerHTML = '<div class="ai-result">' + renderObject(data) + '</div>'; }
+                            else { var mdHtml = tryParseAsMarkdown(stripped); if(mdHtml){container.innerHTML='<div class="ai-result ai-md">'+mdHtml+'</div>';}else{container.innerHTML='<div class="ai-result"><div class="ai-sec"><div class="ai-sec-head"><span class="ai-sec-icon">📄</span><span class="ai-sec-title">原始响应</span></div><div class="ai-sec-body"><pre class="ai-raw">'+sh(raw)+'</pre></div></div></div>';} }
+                        } catch(e) {
+                            var mdHtml2 = tryParseAsMarkdown(raw.trim());
+                            if(mdHtml2){container.innerHTML='<div class="ai-result ai-md">'+mdHtml2+'</div>';}else{container.innerHTML='<div class="ai-result"><div class="ai-sec"><div class="ai-sec-head"><span class="ai-sec-icon">⚠️</span><span class="ai-sec-title">解析异常</span></div><div class="ai-sec-body"><p style="font-size:10px;color:var(--danger);margin-bottom:8px">响应格式无法自动解析，显示原始内容：</p><pre class="ai-raw">'+sh(raw)+'</pre></div></div></div>';}
+                        }
+                    })();
+                    </script>
+                    {% endraw %}
+                    <style>
+                    .ai-result{padding:2px 0}
+                    .ai-empty{text-align:center;padding:32px 16px;color:var(--text-3)}
+                    .ai-empty-icon{font-size:32px;display:block;margin-bottom:8px}
+                    .ai-empty p{margin:0;font-size:12px}
+                    .ai-sec{margin-bottom:14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border-lt);overflow:hidden}
+                    .ai-sec-head{display:flex;align-items:center;gap:5px;padding:8px 10px;background:linear-gradient(135deg,var(--primary-light),transparent);border-bottom:1px solid var(--border-lt)}
+                    .ai-sec-icon{font-size:13px;flex-shrink:0}
+                    .ai-sec-title{font-size:12px;font-weight:700;color:var(--primary)}
+                    .ai-sec-body{padding:10px 12px;font-size:11px;line-height:1.7;color:var(--text-1)}
+                    .ai-sec-body p{margin:2px 0}
+
+                    .ai-score-wrap{display:flex;flex-direction:column;gap:6px}
+                    .ai-score-bar{height:10px;background:var(--surface-3);border-radius:5px;overflow:hidden;position:relative}
+                    .ai-score-fill{height:100%;border-radius:5px;transition:width .8s ease}
+                    .ai-score-fill.sg{background:linear-gradient(90deg,#16a34a,#4ade80)}
+                    .ai-score-fill.sm{background:linear-gradient(90deg,#d97706,#fbbf24)}
+                    .ai-score-fill.sp{background:linear-gradient(90deg,#dc2626,#f87171)}
+                    .ai-score-info{display:flex;align-items:baseline;gap:4px}
+                    .ai-score-num{font-size:28px;font-weight:800;line-height:1}
+                    .ai-score-num.sg{color:var(--success)}.ai-score-num.sm{color:var(--warning)}.ai-score-num.sp{color:var(--danger)}
+                    .ai-score-label{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px}
+                    .ai-score-label.sg{background:var(--success-light);color:var(--success)}
+                    .ai-score-label.sm{background:var(--warning-light);color:var(--warning)}
+                    .ai-score-label.sp{background:var(--danger-light);color:var(--danger)}
+                    .ai-score-max{font-size:12px;color:var(--text-3)}
+
+                    .ai-tbl{width:100%;border-collapse:collapse;font-size:10px}
+                    .ai-tbl thead th{background:var(--bg-2);color:var(--text-1);font-weight:600;padding:6px 8px;text-align:left;border-bottom:2px solid var(--border);font-size:10px;white-space:nowrap}
+                    .ai-tbl td{padding:5px 8px;border-bottom:1px solid var(--border-2);vertical-align:top;font-size:10px;line-height:1.5}
+                    .ai-tbl tbody tr:hover{background:var(--bg-1)}
+                    .ai-tbl-wrap{overflow-x:auto;margin:4px 0;-webkit-overflow-scrolling:touch}
+
+                    .sev-b{display:inline-block;padding:1px 8px;border-radius:10px;font-size:9px;font-weight:700;white-space:nowrap;letter-spacing:0.5px}
+                    .sev-b.sh{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+                    .sev-b.sm{background:#fffbeb;color:#d97706;border:1px solid #fde68a}
+                    .sev-b.sl{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+
+                    .ai-ul{margin:0;padding-left:18px}
+                    .ai-ul li{margin-bottom:5px;line-height:1.6;position:relative}
+                    .ai-ul li::marker{color:var(--primary);font-size:10px}
+
+                    .ai-arr{display:flex;flex-direction:column;gap:3px}
+                    .ai-arr-item{padding:4px 8px;background:var(--surface-3);border-radius:var(--r-sm);font-size:10px;line-height:1.5;border-left:2px solid var(--primary)}
+
+                    .ai-kv{display:flex;gap:6px;padding:4px 0;border-bottom:1px dotted var(--border-lt);font-size:10px}
+                    .ai-kv-k{color:var(--primary);font-weight:600;min-width:80px;flex-shrink:0;white-space:nowrap}
+                    .ai-kv-v{color:var(--text-1);word-break:break-word}
+
+                    .ai-link{color:var(--primary);word-break:break-all}
+                    .ai-link:hover{text-decoration:underline}
+
+                    .ai-raw{white-space:pre-wrap;word-break:break-word;font-family:var(--font-mono);font-size:10px;line-height:1.6;background:var(--surface-3);padding:12px;border-radius:var(--r-sm);max-height:360px;overflow-y:auto;color:var(--text-2)}
+
+                    .j-k{color:#098658;font-weight:600}.j-s{color:#a31515}.j-n{color:#098658}.j-b{color:#0000ff}
+
+                    .ai-md-h1{font-size:15px;font-weight:800;color:var(--text-1);margin:14px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--primary)}
+                    .ai-md-h2{font-size:13px;font-weight:700;color:var(--primary);margin:12px 0 6px;padding-bottom:3px;border-bottom:1px solid var(--border-lt)}
+                    .ai-md-h3{font-size:12px;font-weight:600;color:var(--text-1);margin:10px 0 4px}
+                    .ai-md-p{font-size:11px;line-height:1.7;color:var(--text-1);margin:3px 0;padding-left:2px}
+                    .ai-md-li{font-size:11px;line-height:1.6;color:var(--text-1);margin:2px 0 2px 16px;list-style-type:disc}
+                    .ai-md-bq{border-left:3px solid var(--primary);padding:6px 12px;margin:6px 0;background:var(--primary-bg);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:11px;color:var(--text-2)}
+                    .ai-md pre.ai-code{background:#1e293b;color:#e2e8f0;padding:12px;border-radius:var(--r-sm);font-size:10px;line-height:1.5;overflow-x:auto;margin:6px 0}
+                    </style>
+                    {% else %}
+                    <div class="empty">AI分析结果未返回（请检查大模型API是否可用）</div>
+                    <div style="font-size:10px;color:var(--text-3);margin-top:6px">
+                        <div>模型: {{ model | default('unknown') }}</div>
+                        <div>分析耗时: {{ analysis_time | default(0) }}秒</div>
+                        {% if v2_info and v2_info.phase_timings %}
+                        <div>LLM阶段耗时: {{ v2_info.phase_timings.get('llm_analysis', 0) }}ms</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="sec-title">OCR识别结果 <span class="sec-count">{{ ocr_results|length }}</span></div>
+                    {% if ocr_results %}
+                    <table class="ocr-table">
+                        <tr><th>文本</th><th>置信度</th></tr>
+                        {% for r in ocr_results %}
+                        <tr><td>{{ r.text }}</td><td class="ocr-conf">{{ "%.2f"|format(r.confidence) }}</td></tr>
+                        {% endfor %}
+                    </table>
+                    {% else %}
+                    <div class="empty">未识别到文字</div>
+                    {% endif %}
+                </div>
+
+                <div class="tab-panel" id="panel-knowledge">
+                    <div class="sec-title" style="margin-top:0">GB/T 14665-2012 机械工程CAD制图规则</div>
+                    <p style="font-size:10px;color:var(--text-3);margin-bottom:10px">以下为与当前检测错误相关的国标条款</p>
+                    {% if gb_knowledge %}
+                        {% for item in gb_knowledge %}
+                        <div class="kb-card">
+                            <strong>{{ item.get('title', '标准条款') }}</strong>
+                            <p>{{ item.get('content', '')[:300] }}{% if item.get('content','')|length > 300 %}...{% endif %}</p>
+                            <small>来源: {{ item.get('source', 'GB/T 14665-2012') }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty">暂无相关国标条款</div>
+                    {% endif %}
+                </div>
+
+                <div class="tab-panel" id="panel-v2">
+                    <div class="sec-title" style="margin-top:0">6阶段流水线耗时</div>
+                    {% if v2_info and v2_info.phase_timings %}
+                    {% set pt = v2_info.phase_timings %}
+                    {% set max_time = [pt.get('planning',0), pt.get('perception',0), pt.get('rule_check',0), pt.get('llm_analysis',0), pt.get('fusion',0), pt.get('vlm_judge',0)]|max %}
+                    {% if max_time == 0 %}{% set max_time = 1 %}{% endif %}
+                    <div class="phase-bar-row">
+                        <span class="phase-bar-label">Planning</span>
+                        <div class="phase-bar-track"><div class="phase-bar-fill c-planning" style="width:{{ (pt.get('planning',0)/max_time*100)|int }}%"></div></div>
+                        <span class="phase-bar-time">{{ pt.get('planning',0) }}ms</span>
+                    </div>
+                    <div class="phase-bar-row">
+                        <span class="phase-bar-label">Perception</span>
+                        <div class="phase-bar-track"><div class="phase-bar-fill c-perception" style="width:{{ (pt.get('perception',0)/max_time*100)|int }}%"></div></div>
+                        <span class="phase-bar-time">{{ pt.get('perception',0) }}ms</span>
+                    </div>
+                    <div class="phase-bar-row">
+                        <span class="phase-bar-label">RuleCheck</span>
+                        <div class="phase-bar-track"><div class="phase-bar-fill c-rule-check" style="width:{{ (pt.get('rule_check',0)/max_time*100)|int }}%"></div></div>
+                        <span class="phase-bar-time">{{ pt.get('rule_check',0) }}ms</span>
+                    </div>
+                    <div class="phase-bar-row">
+                        <span class="phase-bar-label">Analysis</span>
+                        <div class="phase-bar-track"><div class="phase-bar-fill c-llm-analysis" style="width:{{ (pt.get('llm_analysis',0)/max_time*100)|int }}%"></div></div>
+                        <span class="phase-bar-time">{{ pt.get('llm_analysis',0) }}ms</span>
+                    </div>
+                    <div class="phase-bar-row">
+                        <span class="phase-bar-label">Fusion</span>
+                        <div class="phase-bar-track"><div class="phase-bar-fill c-fusion" style="width:{{ (pt.get('fusion',0)/max_time*100)|int }}%"></div></div>
+                        <span class="phase-bar-time">{{ pt.get('fusion',0) }}ms</span>
+                    </div>
+                    <div class="phase-bar-row">
+                        <span class="phase-bar-label">Judge</span>
+                        <div class="phase-bar-track"><div class="phase-bar-fill c-vlm-judge" style="width:{{ (pt.get('vlm_judge',0)/max_time*100)|int }}%"></div></div>
+                        <span class="phase-bar-time">{{ pt.get('vlm_judge',0) }}ms</span>
+                    </div>
+                    {% else %}
+                    <div class="empty">暂无流水线耗时数据</div>
+                    {% endif %}
+
+                    <div class="sec-title">预检状态</div>
+                    {% if v2_info and v2_info.contract_stats %}
+                    {% set cs = v2_info.contract_stats %}
+                    <div class="contract-stats">
+                        <div class="contract-stat"><div class="contract-stat-num" style="color:var(--primary)">{{ cs.get('total',0) }}</div><div class="contract-stat-label">检测项</div></div>
+                        <div class="contract-stat"><div class="contract-stat-num" style="color:var(--success)">{{ cs.get('completed',0) }}</div><div class="contract-stat-label">已通过</div></div>
+                        <div class="contract-stat"><div class="contract-stat-num" style="color:var(--danger)">{{ cs.get('failed',0) }}</div><div class="contract-stat-label">未通过</div></div>
+                        <div class="contract-stat"><div class="contract-stat-num" style="color:var(--text-3)">{{ cs.get('pending',0) }}</div><div class="contract-stat-label">待检测</div></div>
+                    </div>
+                    {% set total = cs.get('total',0) %}
+                    {% if total > 0 %}
+                    <div class="contract-pct">通过率: {{ (cs.get('completed',0)/total*100)|round(1) }}%</div>
+                    {% else %}
+                    <div class="contract-pct">通过率: N/A</div>
+                    {% endif %}
+                    <div class="contract-list">
+                        {% if v2_info and v2_info.contract_details %}
+                        {% for cd in v2_info.contract_details %}
+                        <div class="contract-item">
+                            <span class="ci-icon">{{ cd.icon }}</span>
+                            <span class="ci-name">{{ cd.name }}</span>
+                            <span class="ci-status {{ cd.css_class }}">{{ cd.label }}</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="contract-item">
+                            <span class="ci-icon">○</span>
+                            <span class="ci-name">暂无预检数据</span>
+                            <span class="ci-status s-pending">--</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="empty">暂无预检状态数据</div>
+                    {% endif %}
+
+                    {% if v2_info and v2_info.rollback_stats and v2_info.rollback_stats.get('total_rollbacks',0) > 0 %}
+                    <div class="sec-title">回滚日志</div>
+                    <div class="rollback-card">
+                        <strong>回滚次数: {{ v2_info.rollback_stats.get('total_rollbacks',0) }}</strong>
+                        {% if v2_info.rollback_stats.get('details') %}
+                        <div style="margin-top:4px">
+                            {% for detail in v2_info.rollback_stats.get('details',[]) %}
+                            <div style="font-size:9px;color:var(--text-2);padding:2px 0">{{ detail }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="sec-title">经验库统计</div>
+                    {% if v2_info and v2_info.experience_stats %}
+                    <div class="experience-card">
+                        <div><strong>总案例数: {{ v2_info.experience_stats.get('total_cases',0) }}</strong></div>
+                        {% if v2_info.experience_stats.get('by_role') %}
+                        <div style="margin-top:4px">
+                            {% for role, count in v2_info.experience_stats.get('by_role',{}).items() %}
+                            <div style="font-size:9px;color:var(--text-2);padding:2px 0">{{ role }}: {{ count }}条</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="empty">暂无经验库数据</div>
+                    {% endif %}
+
+                    {% if v2_info and v2_info.judge_result %}
+                    <div class="sec-title">VLM评审</div>
+                    <div class="judge-section">
+                        <div class="radar-wrap">
+                            <svg id="radarChart" width="200" height="200" viewBox="0 0 200 200"></svg>
+                        </div>
+                        {% if v2_info.judge_result.get('comment') %}
+                        <div class="judge-comment">{{ v2_info.judge_result.get('comment','') }}</div>
+                        {% endif %}
+                        {% if v2_info.judge_result.get('suggestions') %}
+                        <div class="judge-suggestions">
+                            <div style="font-size:10px;font-weight:600;color:var(--text-2);margin-bottom:3px">改进建议</div>
+                            {% for sug in v2_info.judge_result.get('suggestions',[]) %}
+                            <div class="judge-sug-item">{{ sug }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <script type="application/json" id="judgeJsonData">
+{{ v2_info.judge_result | tojson | safe }}
+                    </script>
+                    <script>
+                    (function(){
+                        var jr = {};
+                        try {
+                            var jd = document.getElementById('judgeJsonData');
+                            if (jd) jr = JSON.parse(jd.textContent);
+                        } catch(e) {}
+                        var dims = ['accuracy','completeness','helpfulness','guidance'];
+                        var labels = ['准确度','完整度','有用性','引导性'];
+                        var scores = jr.scores || jr;
+                        var vals = dims.map(function(d){ return Math.max(0, Math.min(1, (scores[d] || 0) / 5)); });
+                        var cx = 100, cy = 100, r = 70;
+                        var n = dims.length;
+                        var svg = document.getElementById('radarChart');
+
+                        var gridLevels = [0.25, 0.5, 0.75, 1.0];
+                        gridLevels.forEach(function(level){
+                            var pts = [];
+                            for(var i=0;i<n;i++){
+                                var angle = (Math.PI*2*i/n) - Math.PI/2;
+                                pts.push(cx + r*level*Math.cos(angle));
+                                pts.push(cy + r*level*Math.sin(angle));
+                            }
+                            var poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+                            poly.setAttribute('points', pts.join(' '));
+                            poly.setAttribute('fill','none');
+                            poly.setAttribute('stroke','var(--border)');
+                            poly.setAttribute('stroke-width','0.5');
+                            svg.appendChild(poly);
+                        });
+
+                        for(var i=0;i<n;i++){
+                            var angle = (Math.PI*2*i/n) - Math.PI/2;
+                            var x2 = cx + r*Math.cos(angle);
+                            var y2 = cy + r*Math.sin(angle);
+                            var line = document.createElementNS('http://www.w3.org/2000/svg','line');
+                            line.setAttribute('x1',cx);line.setAttribute('y1',cy);
+                            line.setAttribute('x2',x2);line.setAttribute('y2',y2);
+                            line.setAttribute('stroke','var(--border)');
+                            line.setAttribute('stroke-width','0.5');
+                            svg.appendChild(line);
+
+                            var lx = cx + (r+14)*Math.cos(angle);
+                            var ly = cy + (r+14)*Math.sin(angle);
+                            var text = document.createElementNS('http://www.w3.org/2000/svg','text');
+                            text.setAttribute('x',lx);text.setAttribute('y',ly);
+                            text.setAttribute('text-anchor','middle');
+                            text.setAttribute('dominant-baseline','middle');
+                            text.setAttribute('fill','var(--text-2)');
+                            text.setAttribute('font-size','9');
+                            text.textContent = labels[i];
+                            svg.appendChild(text);
+                        }
+
+                        var dataPts = [];
+                        for(var i=0;i<n;i++){
+                            var angle = (Math.PI*2*i/n) - Math.PI/2;
+                            dataPts.push(cx + r*vals[i]*Math.cos(angle));
+                            dataPts.push(cy + r*vals[i]*Math.sin(angle));
+                        }
+                        var dataPoly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+                        dataPoly.setAttribute('points', dataPts.join(' '));
+                        dataPoly.setAttribute('fill','rgba(124,58,237,0.15)');
+                        dataPoly.setAttribute('stroke','#7c3aed');
+                        dataPoly.setAttribute('stroke-width','1.5');
+                        svg.appendChild(dataPoly);
+
+                        for(var i=0;i<n;i++){
+                            var dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+                            dot.setAttribute('cx', dataPts[i*2]);
+                            dot.setAttribute('cy', dataPts[i*2+1]);
+                            dot.setAttribute('r','3');
+                            dot.setAttribute('fill','#7c3aed');
+                            dot.setAttribute('stroke','#fff');
+                            dot.setAttribute('stroke-width','1');
+                            svg.appendChild(dot);
+                        }
+                    })();
+                    </script>
+                    {% endif %}
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <footer class="ftr">
+        <span><span class="ftr-dot"></span>分析完成</span>
+        <span class="ftr-sep"></span>
+        <span>多智能体协同 · 预检机制 · 智能纠错</span>
+        <span class="ftr-sep"></span>
+        <span>文件: {{ filename }}</span>
+        <span class="ftr-sep"></span>
+        <span>错误: {{ errors|length }}项</span>
+        {% if report and report.summary %}<span class="ftr-sep"></span><span>评分: {{ report.summary.overall_score|default(0) }}/100</span>{% endif %}
+        <span style="margin-left:auto"><span class="kbd">Tab</span> 侧栏 <span class="kbd">A</span> 标注 <span class="kbd">F</span> 适应 <span class="kbd">I</span> 反色</span>
+    </footer>
+
+    <script>
+    (function(){
+        var scale = 1, panX = 0, panY = 0;
+        var isPanning = false, panStartX = 0, panStartY = 0, panStartPanX = 0, panStartPanY = 0;
+        var inverted = false, magnifierOn = false, annotationsVisible = false;
+        var activeErrorIndex = -1;
+        var currentFilter = 'all';
+        var img = document.getElementById('drawingImg');
+        var inner = document.getElementById('canvasInner');
+        var wrap = document.getElementById('canvasWrap');
+        var zoomEl = document.getElementById('zoomLevel');
+        var overlay = document.getElementById('canvasOverlay');
+        var magEl = document.getElementById('magnifier');
+        var magImg = document.getElementById('magImg');
+        var imgNaturalW = 0, imgNaturalH = 0;
+
+        var errorData = [
+            {% if errors %}
+            {% for error in errors %}
+            {% if error is mapping %}
+            {type:'{{ error.get("type","") }}',severity:'{{ error.get("severity","medium")|lower }}',description:'{{ error.get("description","")|e }}',suggestion:'{{ error.get("suggestion","")|e }}',source:'{{ error.get("source","") }}',marker_x:{% if error.get("marker_x") is not none %}{{ error.get("marker_x") }}{% else %}null{% endif %},marker_y:{% if error.get("marker_y") is not none %}{{ error.get("marker_y") }}{% else %}null{% endif %}}{% if not loop.last %},{% endif %}
+            {% else %}
+            {type:'未知',severity:'medium',description:'{{ error|e }}',suggestion:'',source:'',marker_x:null,marker_y:null}{% if not loop.last %},{% endif %}
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+        ];
+
+        function updateTransform(){
+            inner.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+            zoomEl.textContent = Math.round(scale * 100) + '%';
+            updateAnnotationPositions();
+        }
+
+        window.zoomBy = function(delta){
+            scale = Math.max(0.1, Math.min(10, scale + delta));
+            updateTransform();
+        };
+
+        window.zoomFit = function(){
+            if(!imgNaturalW) return;
+            var ww = wrap.clientWidth - 32;
+            var wh = wrap.clientHeight - 32;
+            scale = Math.min(ww / imgNaturalW, wh / imgNaturalH, 1);
+            panX = (wrap.clientWidth - imgNaturalW * scale) / 2;
+            panY = (wrap.clientHeight - imgNaturalH * scale) / 2;
+            updateTransform();
+        };
+
+        window.zoomReset = function(){
+            scale = 1;
+            panX = (wrap.clientWidth - imgNaturalW) / 2;
+            panY = (wrap.clientHeight - imgNaturalH) / 2;
+            updateTransform();
+        };
+
+        wrap.addEventListener('wheel', function(e){
+            e.preventDefault();
+            var rect = wrap.getBoundingClientRect();
+            var mx = e.clientX - rect.left;
+            var my = e.clientY - rect.top;
+            var oldScale = scale;
+            var delta = e.deltaY > 0 ? -0.1 : 0.1;
+            scale = Math.max(0.1, Math.min(10, scale + delta * scale * 0.3));
+            panX = mx - (mx - panX) * (scale / oldScale);
+            panY = my - (my - panY) * (scale / oldScale);
+            updateTransform();
+        }, {passive: false});
+
+        wrap.addEventListener('mousedown', function(e){
+            if(e.button === 1 || e.button === 0 && e.shiftKey){
+                isPanning = true;
+                panStartX = e.clientX; panStartY = e.clientY;
+                panStartPanX = panX; panStartPanY = panY;
+                wrap.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('mousemove', function(e){
+            if(isPanning){
+                panX = panStartPanX + (e.clientX - panStartX);
+                panY = panStartPanY + (e.clientY - panStartY);
+                updateTransform();
+            }
+            if(magnifierOn && magEl.style.display !== 'none'){
+                updateMagnifier(e);
+            }
+        });
+        document.addEventListener('mouseup', function(){
+            if(isPanning){
+                isPanning = false;
+                wrap.style.cursor = 'crosshair';
+            }
+        });
+
+        wrap.addEventListener('mousemove', function(e){
+            if(magnifierOn){
+                updateMagnifier(e);
+            }
+        });
+
+        function updateMagnifier(e){
+            var rect = wrap.getBoundingClientRect();
+            var mx = e.clientX - rect.left;
+            var my = e.clientY - rect.top;
+            magEl.style.display = 'block';
+            magEl.style.left = (mx + 20) + 'px';
+            magEl.style.top = (my - 80) + 'px';
+            var magScale = 3;
+            var imgX = (mx - panX) / scale;
+            var imgY = (my - panY) / scale;
+            magImg.style.width = (imgNaturalW * magScale) + 'px';
+            magImg.style.height = (imgNaturalH * magScale) + 'px';
+            magImg.style.left = (-imgX * magScale + 80) + 'px';
+            magImg.style.top = (-imgY * magScale + 80) + 'px';
+        }
+
+        window.toggleInvert = function(){
+            inverted = !inverted;
+            img.style.filter = inverted ? 'invert(1)' : '';
+            document.getElementById('btnInvert').classList.toggle('active', inverted);
+        };
+
+        window.toggleMagnifier = function(){
+            magnifierOn = !magnifierOn;
+            document.getElementById('btnMagnifier').classList.toggle('active', magnifierOn);
+            if(!magnifierOn) magEl.style.display = 'none';
+        };
+
+        window.toggleAnnotations = function(){
+            annotationsVisible = !annotationsVisible;
+            document.getElementById('btnAnnotations').classList.toggle('active', annotationsVisible);
+            overlay.style.display = annotationsVisible ? '' : 'none';
+        };
+
+        window.toggleSidebar = function(){
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        };
+
+        window.switchTab = function(name){
+            document.querySelectorAll('.sidebar-tab').forEach(function(t){t.classList.remove('active')});
+            document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});
+            document.getElementById('panel-' + name).classList.add('active');
+            event.target.closest('.sidebar-tab').classList.add('active');
+        };
+
+        window.setTheme = function(t){
+            document.documentElement.setAttribute('data-theme', t);
+            localStorage.setItem('theme', t);
+            document.querySelectorAll('.theme-btn').forEach(function(btn){
+                btn.classList.toggle('active', btn.getAttribute('data-theme') === t);
+            });
+        };
+
+        window.focusError = function(idx){
+            activeErrorIndex = idx;
+            document.querySelectorAll('.error-card').forEach(function(c){c.classList.remove('active')});
+            var card = document.querySelector('.error-card[data-index="' + idx + '"]');
+            if(card) card.classList.add('active');
+            highlightAnnotation(idx);
+        };
+
+        var rlSessionId = {{ rl_session_id | tojson }};
+
+        window.confirmError = function(idx){
+            var card = document.querySelector('.error-card[data-index="' + idx + '"]');
+            if(card){
+                card.style.opacity = '0.5';
+                card.querySelector('.error-actions').innerHTML = '<span style="font-size:9px;color:var(--success)">✓ 已确认</span>';
+                submitRLFeedback(card, 'confirmed');
+            }
+        };
+
+        window.ignoreError = function(idx){
+            var card = document.querySelector('.error-card[data-index="' + idx + '"]');
+            if(card){
+                card.style.opacity = '0.4';
+                card.querySelector('.error-actions').innerHTML = '<span style="font-size:9px;color:var(--text-3)">✕ 已忽略</span>';
+                submitRLFeedback(card, 'ignored');
+            }
+        };
+
+        function submitRLFeedback(card, feedbackType){
+            var desc = card.querySelector('.error-desc');
+            var errorDesc = desc ? desc.textContent : '';
+            if(!rlSessionId) return;
+            fetch('/api/rl_feedback', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_id: rlSessionId,
+                    error_description: errorDesc,
+                    feedback_type: feedbackType
+                })
+            }).then(function(r){return r.json()}).then(function(d){
+                if(d.success) console.log('[RL] Feedback recorded:', feedbackType, d.rl_stats);
+            }).catch(function(e){console.warn('[RL] Feedback failed:', e)});
+        }
+
+        window.setFilter = function(f){
+            currentFilter = f;
+            document.querySelectorAll('.filter-chip').forEach(function(c){
+                c.classList.toggle('active', c.getAttribute('data-filter') === f);
+            });
+            filterErrors();
+        };
+
+        window.filterErrors = function(){
+            var search = document.getElementById('errorSearch').value.toLowerCase();
+            var visible = 0;
+            document.querySelectorAll('.error-card').forEach(function(card){
+                var sev = card.getAttribute('data-severity');
+                var desc = card.querySelector('.error-desc');
+                var text = desc ? desc.textContent.toLowerCase() : '';
+                var matchSev = currentFilter === 'all' || sev === currentFilter;
+                var matchSearch = !search || text.indexOf(search) >= 0;
+                var show = matchSev && matchSearch;
+                card.style.display = show ? '' : 'none';
+                if(show) visible++;
+            });
+            document.getElementById('errorCount').textContent = visible;
+        };
+
+        function createAnnotations(){
+            overlay.innerHTML = '';
+            if(!errorData.length || !imgNaturalW) return;
+            var hasAnyMarker = false;
+            errorData.forEach(function(err, i){
+                if(err.marker_x === null || err.marker_y === null) return;
+                hasAnyMarker = true;
+                var x = err.marker_x * imgNaturalW;
+                var y = err.marker_y * imgNaturalH;
+                var marker = document.createElement('div');
+                marker.className = 'annotation-marker sev-' + err.severity;
+                marker.setAttribute('data-index', i);
+                marker.style.left = x + 'px';
+                marker.style.top = y + 'px';
+                marker.innerHTML = '<div class="marker-dot">' + (i + 1) + '</div><div class="marker-label">' + err.type + ': ' + err.description.substring(0, 20) + '</div>';
+                marker.onclick = function(){ focusError(i); };
+                overlay.appendChild(marker);
+            });
+            if(!hasAnyMarker){
+                overlay.style.display = 'none';
+            }
+        }
+
+        function updateAnnotationPositions(){
+            var markers = overlay.querySelectorAll('.annotation-marker');
+            markers.forEach(function(m){
+                var ox = parseFloat(m.style.left);
+                var oy = parseFloat(m.style.top);
+                m.style.left = (panX + ox * scale) + 'px';
+                m.style.top = (panY + oy * scale) + 'px';
+                m.style.transform = 'translate(-50%,-50%) scale(' + scale + ')';
+            });
+        }
+
+        function highlightAnnotation(idx){
+            overlay.querySelectorAll('.annotation-marker').forEach(function(m){
+                m.classList.toggle('active', parseInt(m.getAttribute('data-index')) === idx);
+            });
+        }
+
+        window.exportReport = function(){
+            var content = document.querySelector('.sidebar-content').innerText;
+            var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = '纠错报告_' + '{{ filename }}' + '.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        window.onImgLoad = function(){
+            imgNaturalW = img.naturalWidth;
+            imgNaturalH = img.naturalHeight;
+            img.style.width = imgNaturalW + 'px';
+            img.style.height = imgNaturalH + 'px';
+            createAnnotations();
+            zoomFit();
+        };
+
+        document.addEventListener('keydown', function(e){
+            if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            switch(e.key){
+                case 'f': case 'F': e.preventDefault(); zoomFit(); break;
+                case '0': e.preventDefault(); zoomReset(); break;
+                case '+': case '=': e.preventDefault(); zoomBy(0.15); break;
+                case '-': case '_': e.preventDefault(); zoomBy(-0.15); break;
+                case 'i': case 'I': e.preventDefault(); toggleInvert(); break;
+                case 'a': case 'A': e.preventDefault(); toggleAnnotations(); break;
+                case 'm': case 'M': e.preventDefault(); toggleMagnifier(); break;
+                case 'Tab': e.preventDefault(); toggleSidebar(); break;
+                case 'ArrowDown': e.preventDefault(); navigateError(1); break;
+                case 'ArrowUp': e.preventDefault(); navigateError(-1); break;
+            }
+        });
+
+        function navigateError(dir){
+            var cards = document.querySelectorAll('.error-card');
+            if(!cards.length) return;
+            var next = activeErrorIndex + dir;
+            if(next < 0) next = cards.length - 1;
+            if(next >= cards.length) next = 0;
+            focusError(next);
+            var card = document.querySelector('.error-card[data-index="' + next + '"]');
+            if(card) card.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+        }
+
+        var saved = localStorage.getItem('theme') || 'light';
+        setTheme(saved);
+    })();
+
+    // ==================== Atlas 图册案例弹窗 ====================
+    function showAtlasCase(caseId) {
+        var modal = document.getElementById('atlasModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'atlasModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = '<div style="background:var(--surface);border-radius:var(--r-lg);max-width:900px;width:90%;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:var(--shadow-lg);position:relative" id="atlasModalContent">' +
+                '<button onclick="closeAtlasModal()" style="position:absolute;top:8px;right:12px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-3)">✕</button>' +
+                '<div id="atlasModalBody" style="text-align:center;padding:20px;color:var(--text-3)">加载中...</div></div>';
+            document.body.appendChild(modal);
+        }
+        modal.style.display = 'flex';
+
+        fetch('/api/atlas/case/' + caseId)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.error) {
+                    document.getElementById('atlasModalBody').innerHTML = '<p style="color:var(--danger)">' + data.error + '</p>';
+                    return;
+                }
+
+                var html = '<h3 style="margin:0 0 8px;color:var(--text-1);font-size:16px">' + (data.case_name || caseId) + '</h3>';
+                html += '<p style="margin:0 0 16px;color:var(--text-2);font-size:12px">' + (data.chapter || '') + ' · ' + (data.figure_no || '') + '</p>';
+
+                if (data.case_image_b64) {
+                    html += '<div style="text-align:center;margin-bottom:16px">';
+                    html += '<img src="data:image/png;base64,' + data.case_image_b64 + '" style="max-width:100%;max-height:500px;border:1px solid var(--border);border-radius:var(--r-sm);box-shadow:var(--shadow-sm)">';
+                    html += '<p style="margin:6px 0 0;font-size:10px;color:var(--text-3)">📑 图册原文（含标准示例与文字说明）</p>';
+                    html += '</div>';
+                }
+
+                if (data.source_text) {
+                    html += '<div style="background:var(--surface-2);padding:12px;border-radius:var(--r-md);margin-bottom:12px;font-size:12px;color:var(--text-1);line-height:1.6">📖 <strong>图册说明：</strong>' + data.source_text + '</div>';
+                }
+
+                if (data.suggestion) {
+                    html += '<div style="background:var(--info-bg);padding:12px;border-radius:var(--r-md);margin-bottom:12px;font-size:12px;color:var(--info)">✏ <strong>修改建议：</strong>' + data.suggestion + '</div>';
+                }
+
+                if (data.teaching_hint) {
+                    html += '<div style="background:var(--purple-light);padding:12px;border-radius:var(--r-md);margin-bottom:12px;font-size:12px;color:var(--purple)">💡 <strong>引导思考：</strong>' + data.teaching_hint + '</div>';
+                }
+
+                html += '<div style="display:flex;gap:6px;margin-top:12px;justify-content:center;flex-wrap:wrap">';
+                html += '<button onclick="atlasFeedback(\'' + caseId + '\',\'confirm\')" style="font-size:11px;padding:4px 10px;border:1px solid var(--success);border-radius:var(--r-sm);background:var(--success-light);cursor:pointer;color:var(--success)">✓ 确认此错误</button>';
+                html += '<button onclick="atlasFeedback(\'' + caseId + '\',\'false_positive\')" style="font-size:11px;padding:4px 10px;border:1px solid var(--danger);border-radius:var(--r-sm);background:var(--danger-light);cursor:pointer;color:var(--danger)">✕ 误报</button>';
+                html += '<button onclick="atlasFeedback(\'' + caseId + '\',\'downgrade\')" style="font-size:11px;padding:4px 10px;border:1px solid var(--warning);border-radius:var(--r-sm);background:var(--warning-light);cursor:pointer;color:var(--warning)">↓ 降级为建议</button>';
+                html += '<button onclick="atlasFeedback(\'' + caseId + '\',\'upgrade\')" style="font-size:11px;padding:4px 10px;border:1px solid var(--primary);border-radius:var(--r-sm);background:var(--primary-light);cursor:pointer;color:var(--primary)">↑ 升级为确定错误</button>';
+                html += '</div>';
+
+                html += '<p style="margin:12px 0 0;font-size:10px;color:var(--text-3);text-align:center">⚠ 该图册案例为教学参考，最终以当前图纸证据和课程要求为准。</p>';
+
+                document.getElementById('atlasModalBody').innerHTML = html;
+            })
+            .catch(function(err) {
+                document.getElementById('atlasModalBody').innerHTML = '<p style="color:var(--danger)">加载失败: ' + err.message + '</p>';
+            });
+    }
+
+    function closeAtlasModal() {
+        var modal = document.getElementById('atlasModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function atlasFeedback(caseId, action) {
+        fetch('/api/atlas/feedback', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({case_id: caseId, action: action})
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            alert(data.message || '反馈已记录');
+        }).catch(function(err) {
+            alert('反馈失败: ' + err.message);
+        });
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeAtlasModal();
+    });
+    </script>
+</body>
+</html>
