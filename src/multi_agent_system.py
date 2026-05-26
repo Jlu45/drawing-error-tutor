@@ -1132,3 +1132,644 @@ class DrawingOrchestrator:
                 'summary': llm_summary or f"共检测到{len(all_errors)}个问题需要关注"
             }
         }
+
+
+# ==================== V2 Orchestrator ====================
+
+from src.connector_contract import (
+    StageName, ContractStatus, StageInput, StageOutput,
+    ConnectorContract, STAGE_CONTRACTS, ContractValidator
+)
+from src.cross_stage_rollback import CrossStageRollback, RollbackResult
+from src.experience_store import ExperienceStore
+from src.vlm_judge import VLMJudge, JudgeVerdict
+from src.atlas import (
+    AtlasRegistry, AtlasRetriever, AtlasRulePack,
+    AtlasContextBuilder, AtlasMatcher
+)
+from src.rl import RLMemory
+
+
+class OrchestratorV2:
+    PHASES = ["planning", "perception", "rule_check", "llm", "fusion", "judge"]
+
+    def __init__(self, api_url: str, api_key: str,
+                 llm_model: str = "Qwen2.5-72B-Instruct",
+                 vlm_api_url: str = "", vlm_api_key: str = "",
+                 vlm_model: str = ""):
+        self.agents: Dict[str, BaseAgent] = {}
+        self._register_agents(api_url, api_key, llm_model)
+
+        self.contract_validator = ContractValidator()
+        self.rollback = CrossStageRollback()
+        self.experience_store = ExperienceStore()
+        self.vlm_judge = VLMJudge(
+            api_url=vlm_api_url, api_key=vlm_api_key, model=vlm_model
+        )
+        self.rl_memory = RLMemory(state_dim=10)
+
+        try:
+            from config_loader import ATLAS_CASES_PATH, ATLAS_RULES_PATH
+            self._atlas_registry = AtlasRegistry(ATLAS_CASES_PATH, ATLAS_RULES_PATH)
+        except ImportError:
+            self._atlas_registry = AtlasRegistry()
+        self._atlas_context_builder = AtlasContextBuilder(self._atlas_registry)
+
+        self._current_session_id = ""
+        self._phase_timings: Dict[str, float] = {}
+        self._contract_list: List[Dict] = []
+        self._contract_stats: Dict[str, Any] = {}
+        self._rollback_stats: Dict[str, Any] = {}
+
+        logger.info("[OrchestratorV2] Initialized with 6-phase pipeline, "
+                     "contract validation, rollback, experience store, "
+                     "VLM judge, atlas, and RL memory")
+
+    def _register_agents(self, api_url, api_key, llm_model):
+        self.agents = {
+            'ocr': OCRAgent(),
+            'geometry': GeometryAgent(),
+            'structure': StructureAgent(),
+            'rule': RuleCheckAgent(),
+            'llm': LLMAgent(api_url, api_key, llm_model),
+        }
+
+    def analyze(self, image_path: str, background_knowledge: str = "") -> Dict:
+        total_start = time.time()
+        self._phase_timings = {}
+        self._contract_list = []
+        self._contract_stats = {}
+        self._rollback_stats = {}
+        self.rollback.clear()
+
+        logger.info(f"[OrchestratorV2] Starting 6-phase analysis: {image_path}")
+
+        planning_result = self._phase_planning(image_path)
+
+        perception_result = self._phase_perception(image_path, planning_result)
+
+        rule_result, contract_validation = self._phase_rule_check(
+            image_path, perception_result
+        )
+
+        llm_result = self._phase_llm(
+            image_path, perception_result, rule_result, background_knowledge
+        )
+
+        fusion_result = self._phase_fusion(
+            perception_result, rule_result, llm_result
+        )
+
+        judge_result = self._phase_judge(image_path, fusion_result)
+
+        experience_id = self._store_experience(fusion_result)
+
+        rl_state = self.rl_memory.extract_state(fusion_result)
+        rl_action = self.rl_memory.select_action(rl_state)
+        self.rl_memory.apply_action(rl_action)
+        self._current_session_id = f"{os.path.basename(image_path)}_{int(time.time())}"
+        self.rl_memory.register_session(self._current_session_id, rl_state, rl_action, fusion_result)
+
+        self._phase_timings["total"] = (time.time() - total_start) * 1000
+
+        result = self._build_final_result(
+            fusion_result, contract_validation, judge_result,
+            experience_id, rl_state, rl_action
+        )
+
+        logger.info(f"[OrchestratorV2] Complete: {self._phase_timings.get('total', 0):.0f}ms, "
+                     f"phases={list(self._phase_timings.keys())}, "
+                     f"judge_consistent={judge_result.is_consistent}")
+
+        return result
+
+    def _phase_planning(self, image_path: str) -> Dict:
+        start = time.time()
+        logger.info("[OrchestratorV2] Phase 1: Planning")
+
+        planning_info = {
+            'image_path': image_path,
+            'image_exists': os.path.exists(image_path) if image_path else False,
+            'file_size': os.path.getsize(image_path) if image_path and os.path.exists(image_path) else 0,
+            'rl_policy_params': self.rl_memory.get_policy_params().to_vector(),
+        }
+
+        if planning_info['image_exists']:
+            try:
+                img = cv2.imread(image_path)
+                if img is not None:
+                    h, w = img.shape[:2]
+                    planning_info['image_dimensions'] = {'width': w, 'height': h}
+                    planning_info['estimated_complexity'] = 'high' if w * h > 2000000 else 'medium' if w * h > 500000 else 'low'
+            except Exception:
+                pass
+
+        similar_cases = self.experience_store.retrieve(
+            {'errors': [], 'ocr_results': [], 'geo_result': None, 'report': {'total_errors': 0, 'overall_score': 0}},
+            top_k=3
+        )
+        planning_info['similar_case_count'] = len(similar_cases)
+        if similar_cases:
+            planning_info['experience_hints'] = [
+                {'case_id': c.case_id[:8], 'score': round(s, 3), 'error_summary': c.error_summary}
+                for c, s in similar_cases[:3]
+            ]
+
+        self._phase_timings["planning"] = (time.time() - start) * 1000
+        logger.info(f"[OrchestratorV2] Planning done: "
+                     f"complexity={planning_info.get('estimated_complexity', 'unknown')}, "
+                     f"similar_cases={len(similar_cases)}")
+        return planning_info
+
+    def _phase_perception(self, image_path: str, planning_result: Dict) -> Dict:
+        start = time.time()
+        logger.info("[OrchestratorV2] Phase 2: Perception (parallel OCR + Geometry + Structure)")
+
+        rl_params = self.rl_memory.get_policy_params()
+
+        phase1_results = self._run_parallel_perception(image_path)
+
+        ocr_result = phase1_results.get('ocr', AgentResult("OCR", False, {}))
+        geometry_result = phase1_results.get('geometry', AgentResult("Geometry", False, {}))
+        structure_result = phase1_results.get('structure', AgentResult("Structure", False, {}))
+
+        ocr_result = self._enhance_ocr_if_needed(
+            image_path, ocr_result, structure_result,
+            threshold=rl_params.ocr_enhance_threshold
+        )
+
+        ocr_output = self._agent_result_to_stage_output("ocr", ocr_result)
+        geometry_output = self._agent_result_to_stage_output("geometry", geometry_result)
+        structure_output = self._agent_result_to_stage_output("structure", structure_result)
+
+        self.rollback.save_checkpoint("ocr", ocr_output)
+        self.rollback.save_checkpoint("geometry", geometry_output)
+        self.rollback.save_checkpoint("structure", structure_output)
+
+        self._validate_and_record_contracts({
+            'ocr': ocr_output, 'geometry': geometry_output, 'structure': structure_output
+        }, "rule_check")
+
+        self._phase_timings["perception"] = (time.time() - start) * 1000
+
+        return {
+            'ocr_result': ocr_result,
+            'geometry_result': geometry_result,
+            'structure_result': structure_result,
+        }
+
+    def _phase_rule_check(self, image_path: str, perception_result: Dict) -> tuple:
+        start = time.time()
+        logger.info("[OrchestratorV2] Phase 3: RuleCheck")
+
+        ocr_result = perception_result['ocr_result']
+        geometry_result = perception_result['geometry_result']
+        structure_result = perception_result['structure_result']
+
+        rule_result = self.agents['rule'].analyze(
+            "", ocr_result=ocr_result, geometry_result=geometry_result,
+            structure_result=structure_result
+        )
+        rule_result.execution_time_ms = (time.time() - start) * 1000
+
+        rule_output = self._agent_result_to_stage_output("rule_check", rule_result)
+        self.rollback.save_checkpoint("rule_check", rule_output)
+
+        contract_validation = self._validate_and_record_contracts({
+            'ocr': self._agent_result_to_stage_output("ocr", ocr_result),
+            'geometry': self._agent_result_to_stage_output("geometry", geometry_result),
+            'structure': self._agent_result_to_stage_output("structure", structure_result),
+            'rule_check': rule_output,
+        }, "llm")
+
+        error_info = {
+            'confidence': rule_result.confidence,
+            'error_count': rule_result.data.get('total_errors', 0)
+        }
+        if self.rollback.should_rollback("rule_check", error_info):
+            rollback_result = self.rollback.execute_rollback("rule_check", error_info)
+            self._rollback_stats['rule_check'] = {
+                'triggered': True,
+                'rolled_back_stages': rollback_result.rolled_back_stages,
+                'retry_counts': rollback_result.retry_counts,
+                'reason': rollback_result.reason
+            }
+            if rollback_result.success:
+                for stage_name in rollback_result.rolled_back_stages:
+                    cp_output = self.rollback.get_stage_output(stage_name)
+                    if cp_output:
+                        if stage_name == 'ocr':
+                            ocr_result = self._stage_output_to_agent_result(cp_output, "OCR")
+                            perception_result['ocr_result'] = ocr_result
+                        elif stage_name == 'geometry':
+                            geometry_result = self._stage_output_to_agent_result(cp_output, "Geometry")
+                            perception_result['geometry_result'] = geometry_result
+                        elif stage_name == 'structure':
+                            structure_result = self._stage_output_to_agent_result(cp_output, "Structure")
+                            perception_result['structure_result'] = structure_result
+
+                rule_result = self.agents['rule'].analyze(
+                    "", ocr_result=ocr_result, geometry_result=geometry_result,
+                    structure_result=structure_result
+                )
+                rule_result.execution_time_ms = (time.time() - start) * 1000
+                logger.info(f"[OrchestratorV2] RuleCheck after rollback: "
+                             f"{rule_result.data.get('total_errors', 0)} errors")
+
+        self._phase_timings["rule_check"] = (time.time() - start) * 1000
+        return rule_result, contract_validation
+
+    def _phase_llm(self, image_path: str, perception_result: Dict,
+                    rule_result: AgentResult, background_knowledge: str) -> AgentResult:
+        start = time.time()
+        logger.info("[OrchestratorV2] Phase 4: LLM Analysis")
+
+        ocr_result = perception_result['ocr_result']
+        geometry_result = perception_result['geometry_result']
+        structure_result = perception_result['structure_result']
+
+        atlas_context_str = ""
+        try:
+            intermediate = self._build_intermediate_for_atlas(
+                ocr_result, geometry_result, rule_result
+            )
+            atlas_context_str = self._atlas_context_builder.build_llm_context(intermediate)
+        except Exception as e:
+            logger.warning(f"[OrchestratorV2] Atlas context build failed: {e}")
+
+        enhanced_background = background_knowledge
+        if atlas_context_str:
+            enhanced_background = f"{background_knowledge}\n\n{atlas_context_str}" if background_knowledge else atlas_context_str
+
+        llm_result = self.agents['llm'].analyze(
+            "", ocr_result=ocr_result, geometry_result=geometry_result,
+            structure_result=structure_result, rule_result=rule_result,
+            background_knowledge=enhanced_background
+        )
+
+        if not llm_result.success:
+            llm_result = self._generate_local_analysis(
+                ocr_result, geometry_result, structure_result, rule_result
+            )
+            llm_result.execution_time_ms = (time.time() - start) * 1000
+            logger.info("[OrchestratorV2] LLM degraded to local analysis")
+
+        llm_output = self._agent_result_to_stage_output("llm", llm_result)
+        self.rollback.save_checkpoint("llm", llm_output)
+
+        self._validate_and_record_contracts({
+            'ocr': self._agent_result_to_stage_output("ocr", ocr_result),
+            'rule_check': self._agent_result_to_stage_output("rule_check", rule_result),
+            'llm': llm_output,
+        }, "vlm_judge")
+
+        error_info = {
+            'confidence': llm_result.confidence,
+            'error_count': len(llm_result.data.get('raw_response', ''))
+        }
+        if self.rollback.should_rollback("llm", error_info):
+            rollback_result = self.rollback.execute_rollback("llm", error_info)
+            self._rollback_stats['llm'] = {
+                'triggered': True,
+                'rolled_back_stages': rollback_result.rolled_back_stages,
+                'retry_counts': rollback_result.retry_counts,
+                'reason': rollback_result.reason
+            }
+
+        self._phase_timings["llm"] = (time.time() - start) * 1000
+        return llm_result
+
+    def _phase_fusion(self, perception_result: Dict,
+                       rule_result: AgentResult, llm_result: AgentResult) -> Dict:
+        start = time.time()
+        logger.info("[OrchestratorV2] Phase 5: Fusion")
+
+        ocr_result = perception_result['ocr_result']
+        geometry_result = perception_result['geometry_result']
+        structure_result = perception_result['structure_result']
+
+        rl_params = self.rl_memory.get_policy_params()
+
+        fused = self._merge_results_v2(
+            ocr_result, geometry_result, structure_result,
+            rule_result, llm_result, rl_params
+        )
+
+        self._phase_timings["fusion"] = (time.time() - start) * 1000
+        return fused
+
+    def _phase_judge(self, image_path: str, fusion_result: Dict) -> JudgeVerdict:
+        start = time.time()
+        logger.info("[OrchestratorV2] Phase 6: VLM Judge")
+
+        judge_result = self.vlm_judge.judge(image_path, fusion_result)
+
+        if not judge_result.is_consistent and judge_result.missed_errors:
+            for missed in judge_result.missed_errors:
+                missed_error = {
+                    'type': missed.get('type', 'VLM补充检测'),
+                    'description': missed.get('description', ''),
+                    'suggestion': missed.get('suggestion', ''),
+                    'severity': missed.get('severity', '中'),
+                    'source': 'vlm_judge',
+                }
+                existing_descs = {e.get('description', '') for e in fusion_result.get('errors', [])}
+                if missed_error['description'] and missed_error['description'] not in existing_descs:
+                    fusion_result['errors'].append(missed_error)
+                    fusion_result['report']['total_errors'] = len(fusion_result['errors'])
+                    error_cat = missed_error['type']
+                    fusion_result['report']['error_categories'][error_cat] = \
+                        fusion_result['report']['error_categories'].get(error_cat, 0) + 1
+
+        if judge_result.false_positives:
+            fp_indices = set()
+            for fp in judge_result.false_positives:
+                idx = fp.get('index', -1) - 1
+                if 0 <= idx < len(fusion_result.get('errors', [])):
+                    fp_indices.add(idx)
+            if fp_indices:
+                fusion_result['errors'] = [
+                    e for i, e in enumerate(fusion_result['errors'])
+                    if i not in fp_indices
+                ]
+                fusion_result['report']['total_errors'] = len(fusion_result['errors'])
+
+        self._phase_timings["judge"] = (time.time() - start) * 1000
+        return judge_result
+
+    def _run_parallel_perception(self, image_path: str) -> Dict[str, AgentResult]:
+        results = {}
+        sequential_time = 0.0
+        parallel_start = time.time()
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {
+                executor.submit(self.agents['ocr'].analyze, image_path): 'ocr',
+                executor.submit(self.agents['geometry'].analyze, image_path): 'geometry',
+                executor.submit(self.agents['structure'].analyze, image_path): 'structure',
+            }
+            for future in as_completed(futures):
+                name = futures[future]
+                try:
+                    result = future.result(timeout=60)
+                    results[name] = result
+                    sequential_time += result.execution_time_ms
+                    logger.info(f"[OrchestratorV2] {name}: "
+                                 f"{'OK' if result.success else 'FAIL'} "
+                                 f"({result.execution_time_ms:.0f}ms)")
+                except Exception as e:
+                    results[name] = AgentResult(name, False, {}, [str(e)])
+                    logger.error(f"[OrchestratorV2] {name}: ERROR - {e}")
+
+        return results
+
+    def _enhance_ocr_if_needed(self, image_path: str, ocr_result: AgentResult,
+                                structure_result: AgentResult, threshold: int = 5) -> AgentResult:
+        if not ocr_result.success or ocr_result.data.get('total_count', 0) >= threshold:
+            return ocr_result
+        if not structure_result.success:
+            return ocr_result
+
+        regions = structure_result.data.get('regions', [])
+        for region in regions:
+            if region.name == "标题栏区域":
+                region_ocr = self.agents['ocr'].analyze(image_path, region=region)
+                if region_ocr.success and region_ocr.data.get('total_count', 0) > 0:
+                    ocr_result.data['texts'].extend(region_ocr.data.get('texts', []))
+                    ocr_result.data['total_count'] = len(ocr_result.data['texts'])
+                    ocr_result.data['high_confidence_count'] = sum(
+                        1 for t in ocr_result.data['texts'] if t['confidence'] > 0.7)
+                    logger.info(f"[OrchestratorV2] Title block OCR: "
+                                 f"+{region_ocr.data.get('total_count', 0)} texts")
+                break
+
+        return ocr_result
+
+    def _validate_and_record_contracts(self, outputs: Dict[str, StageOutput],
+                                        target: str) -> Dict[str, bool]:
+        results = self.contract_validator.validate_all(outputs, target)
+        for source, passed in results.items():
+            self._contract_list.append({
+                'source': source,
+                'target': target,
+                'passed': passed,
+                'missing_fields': self.contract_validator.get_missing_fields(
+                    source, target, outputs.get(source, StageOutput(
+                        stage_name=StageName.OCR, status=ContractStatus.FAILED
+                    ))
+                )
+            })
+        passed_count = sum(1 for v in results.values() if v)
+        total_count = len(results)
+        self._contract_stats[target] = {
+            'passed': passed_count,
+            'total': total_count,
+            'all_passed': passed_count == total_count
+        }
+        return results
+
+    def _store_experience(self, fusion_result: Dict) -> str:
+        try:
+            case_id = self.experience_store.store(fusion_result)
+            logger.info(f"[OrchestratorV2] Experience stored: {case_id[:8]}...")
+            return case_id
+        except Exception as e:
+            logger.warning(f"[OrchestratorV2] Experience store failed: {e}")
+            return ""
+
+    def _build_intermediate_for_atlas(self, ocr_result, geometry_result,
+                                       rule_result) -> Dict:
+        ocr_texts = ocr_result.data.get('texts', []) if ocr_result.success else []
+        geo = geometry_result.data if geometry_result.success else {}
+        errors = rule_result.data.get('errors', []) if rule_result.success else []
+        return {
+            'ocr_results': ocr_texts,
+            'geo_result': geo,
+            'errors': errors,
+            'report': {
+                'total_errors': rule_result.data.get('total_errors', 0) if rule_result.success else 0,
+                'overall_score': 0,
+            }
+        }
+
+    def _agent_result_to_stage_output(self, stage_name: str,
+                                       agent_result: AgentResult) -> StageOutput:
+        stage_map = {
+            'ocr': StageName.OCR,
+            'geometry': StageName.GEOMETRY,
+            'structure': StageName.STRUCTURE,
+            'rule_check': StageName.RULE_CHECK,
+            'llm': StageName.LLM,
+        }
+        status = ContractStatus.COMPLETED if agent_result.success else ContractStatus.FAILED
+        return StageOutput(
+            stage_name=stage_map.get(stage_name, StageName.OCR),
+            status=status,
+            data=agent_result.data,
+            errors=agent_result.errors,
+            confidence=agent_result.confidence,
+            execution_time_ms=agent_result.execution_time_ms,
+        )
+
+    def _stage_output_to_agent_result(self, stage_output: StageOutput,
+                                       name: str) -> AgentResult:
+        return AgentResult(
+            agent_name=name,
+            success=(stage_output.status == ContractStatus.COMPLETED),
+            data=stage_output.data,
+            errors=stage_output.errors,
+            execution_time_ms=stage_output.execution_time_ms,
+            confidence=stage_output.confidence,
+        )
+
+    def _merge_results_v2(self, ocr_result, geometry_result, structure_result,
+                           rule_result, llm_result, rl_params=None) -> Dict:
+        ocr_texts = ocr_result.data.get('texts', []) if ocr_result.success else []
+        detection_items = []
+        if geometry_result.success:
+            geo = geometry_result.data
+            for l in geo.get('lines', [])[:10]:
+                detection_items.append({'class': '直线', 'confidence': 1.0,
+                                        'bbox': [l['start'][0], l['start'][1], l['end'][0], l['end'][1]]})
+            for c in geo.get('circles', []):
+                detection_items.append({'class': '圆', 'confidence': 1.0,
+                                        'bbox': [c['center'][0]-c['radius'], c['center'][1]-c['radius'],
+                                                 c['center'][0]+c['radius'], c['center'][1]+c['radius']]})
+            for a in geo.get('arrows', []):
+                detection_items.append({'class': '箭头', 'confidence': 0.8, 'bbox': a.get('bbox', [])})
+
+        rule_errors = rule_result.data.get('errors', []) if rule_result.success else []
+        llm_errors = []
+        llm_summary = ""
+        llm_score = None
+        llm_learning_points = []
+        api_result = None
+
+        if llm_result.success:
+            api_result = {
+                'raw_response': llm_result.data.get('raw_response', ''),
+                'model': llm_result.data.get('model', ''),
+                'usage': llm_result.data.get('usage', None)
+            }
+            try:
+                raw = llm_result.data.get('raw_response', '')
+                start_idx = raw.find('{')
+                end_idx = raw.rfind('}') + 1
+                if start_idx >= 0 and end_idx > start_idx:
+                    llm_data = json.loads(raw[start_idx:end_idx])
+                    llm_errors = llm_data.get('errors', [])
+                    llm_summary = llm_data.get('summary', '')
+                    llm_score = llm_data.get('overall_score', None)
+                    llm_learning_points = llm_data.get('learning_points', [])
+            except Exception:
+                pass
+
+        all_errors = list(rule_errors)
+        existing_descs = {e.get('description', '') for e in all_errors}
+        for le in llm_errors:
+            desc = le.get('description', '')
+            if desc and desc not in existing_descs:
+                all_errors.append({
+                    'type': le.get('type', 'LLM检测'),
+                    'description': desc,
+                    'suggestion': le.get('suggestion', ''),
+                    'severity': le.get('severity', '中'),
+                    'source': 'llm_analysis',
+                    'gb_reference': le.get('gb_reference', '')
+                })
+                existing_descs.add(desc)
+
+        if rl_params is None:
+            from src.rl.rl_memory import PolicyParams
+            rl_params = PolicyParams()
+        severity_weights = {
+            '高': rl_params.severity_weight_high,
+            '中': rl_params.severity_weight_medium,
+            '低': rl_params.severity_weight_low
+        }
+        weighted = sum(severity_weights.get(e.get('severity', '中'), rl_params.severity_weight_medium) for e in all_errors)
+        base_score = max(0, 100 - weighted * rl_params.score_penalty_per_weight)
+        fusion_ratio = rl_params.llm_score_fusion_ratio
+        overall_score = int(base_score * (1 - fusion_ratio) + llm_score * fusion_ratio) if llm_score is not None else base_score
+
+        error_categories = {}
+        for e in all_errors:
+            cat = e.get('type', '其他')
+            error_categories[cat] = error_categories.get(cat, 0) + 1
+
+        feedback = []
+        if llm_learning_points:
+            feedback.extend(llm_learning_points)
+        else:
+            for e in all_errors[:5]:
+                desc = e.get('description', '')
+                etype = e.get('type', '')
+                if '尺寸' in etype:
+                    feedback.append(f'关于"{desc}"——哪些关键尺寸是必须标注的？')
+                elif '线型' in etype:
+                    feedback.append(f'关于"{desc}"——你能区分不同线型的含义吗？')
+                elif '公差' in etype:
+                    feedback.append(f'关于"{desc}"——如何选择合适的公差等级？')
+                elif '标题栏' in etype:
+                    feedback.append(f'关于"{desc}"——标题栏应包含哪些必要信息？')
+                else:
+                    feedback.append(f'关于"{desc}"——请思考如何修正这个问题。')
+        if not feedback:
+            feedback.append('请仔细检查图纸细节，确保符合GB/T制图标准。')
+
+        return {
+            'ocr_results': ocr_texts,
+            'detection_results': detection_items,
+            'errors': all_errors,
+            'feedback': feedback,
+            'api_result': api_result,
+            'geo_result': geometry_result.data if geometry_result.success else None,
+            'structure_result': structure_result.data if structure_result.success else None,
+            'report': {
+                'total_errors': len(all_errors),
+                'error_categories': error_categories,
+                'overall_score': overall_score,
+                'summary': llm_summary or f"共检测到{len(all_errors)}个问题需要关注"
+            }
+        }
+
+    def _build_final_result(self, fusion_result: Dict,
+                             contract_validation: Dict,
+                             judge_result: JudgeVerdict,
+                             experience_id: str,
+                             rl_state: np.ndarray,
+                             rl_action: int) -> Dict:
+        rollback_history = self.rollback.get_history()
+        rollback_stats = {
+            'total_rollbacks': len(rollback_history),
+            'stages_affected': list(set(
+                stage for rb in rollback_history for stage in rb.rolled_back_stages
+            )),
+            'details': self._rollback_stats,
+        }
+
+        experience_stats = self.experience_store.get_stats()
+
+        rl_stats = self.rl_memory.get_stats()
+
+        metrics = {
+            'phase_timings': {k: round(v, 1) for k, v in self._phase_timings.items()},
+            'contract_stats': self._contract_stats,
+            'rollback_stats': rollback_stats,
+            'experience_stats': experience_stats,
+            'rl_stats': rl_stats,
+            'contract_list': self._contract_list,
+        }
+
+        fusion_result['metrics'] = metrics
+        fusion_result['contract_validation'] = contract_validation
+        fusion_result['judge_result'] = {
+            'is_consistent': judge_result.is_consistent,
+            'confidence': judge_result.confidence,
+            'verified_errors': judge_result.verified_errors,
+            'missed_errors': judge_result.missed_errors,
+            'false_positives': judge_result.false_positives,
+            'overall_assessment': judge_result.overall_assessment,
+        }
+
+        return fusion_result

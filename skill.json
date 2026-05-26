@@ -1,6 +1,6 @@
 {
   "name": "drawing-error-correction",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Intelligent engineering drawing error correction and tutoring platform based on GB/T national standards",
   "author": "Drawing Error Correction Contributors",
   "license": "MIT",
@@ -14,7 +14,11 @@
     "reinforcement-learning",
     "flask",
     "opencv",
-    "ocr"
+    "ocr",
+    "atlas",
+    "vlm-judge",
+    "experience-store",
+    "cross-stage-rollback"
   ],
   "categories": [
     "education",
@@ -41,6 +45,22 @@
     {
       "name": "knowledge-search",
       "description": "Search GB national standards knowledge base"
+    },
+    {
+      "name": "pre-check-protocol",
+      "description": "Pre-check protocol for validating inputs before processing"
+    },
+    {
+      "name": "vlm-quality-judge",
+      "description": "Vision-Language Model based quality judge for drawing analysis results"
+    },
+    {
+      "name": "atlas-drawing-atlas",
+      "description": "Drawing atlas with case-based reasoning and rule management"
+    },
+    {
+      "name": "experience-store",
+      "description": "Experience store for cross-session learning and knowledge accumulation"
     }
   ],
   "requirements": {
@@ -76,7 +96,10 @@
       "MULTIMODAL_VISION_MODEL",
       "FLASK_HOST",
       "FLASK_PORT",
-      "FLASK_DEBUG"
+      "FLASK_DEBUG",
+      "VLM_MODEL",
+      "VLM_JUDGE_ENABLED",
+      "ENABLE_ATLAS_PACK"
     ]
   },
   "endpoints": [
@@ -104,6 +127,46 @@
       "path": "/api/rl_stats",
       "method": "GET",
       "description": "Get RL memory stats"
+    },
+    {
+      "path": "/v2",
+      "method": "GET",
+      "description": "V2 upload page"
+    },
+    {
+      "path": "/v2/upload",
+      "method": "POST",
+      "description": "V2 upload and analyze drawing with enhanced pipeline"
+    },
+    {
+      "path": "/api/v2/rl_feedback",
+      "method": "POST",
+      "description": "Submit V2 RL feedback with experience store"
+    },
+    {
+      "path": "/api/v2/rl_stats",
+      "method": "GET",
+      "description": "Get V2 RL stats with experience store metrics"
+    },
+    {
+      "path": "/api/atlas/case/<case_id>",
+      "method": "GET",
+      "description": "Get atlas case by ID"
+    },
+    {
+      "path": "/api/atlas/rules",
+      "method": "GET",
+      "description": "Get atlas rules"
+    },
+    {
+      "path": "/api/atlas/feedback",
+      "method": "POST",
+      "description": "Submit atlas feedback"
+    },
+    {
+      "path": "/api/atlas/stats",
+      "method": "GET",
+      "description": "Get atlas statistics"
     }
   ],
   "error_categories": [
@@ -136,6 +199,26 @@
       "type": "几何完整性",
       "gb_reference": "",
       "description": "Geometric completeness errors"
+    },
+    {
+      "type": "焊接符号",
+      "gb_reference": "GB/T 324",
+      "description": "Welding symbol errors"
+    },
+    {
+      "type": "图幅规范",
+      "gb_reference": "GB/T 14689",
+      "description": "Drawing sheet format errors"
+    },
+    {
+      "type": "表面粗糙度",
+      "gb_reference": "GB/T 131",
+      "description": "Surface roughness annotation errors"
+    },
+    {
+      "type": "视图标注",
+      "gb_reference": "GB/T 17451",
+      "description": "View annotation errors"
     }
   ]
 }

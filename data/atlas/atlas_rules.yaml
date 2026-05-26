@@ -1,0 +1,663 @@
+- rule_id: ATLAS_LINE_CENTER_SHORT_001
+  name: 短中心线不超出轮廓线检查
+  v2_error_category: LINE_TYPE_ERROR
+  source_case_id: ATLAS_LINE_CENTER_SHORT_001
+  enabled: true
+  priority: P0
+  required_agents: [GeometryAgent, StructureAgent]
+  required_v2_fields:
+    geometry: [lines, line_types, contours]
+    structure: [view_regions]
+  check_type: geometry_threshold
+  params:
+    max_extension_mm_if_scale_known: 0.5
+    confidence_confirmed: 0.85
+    confidence_suspected: 0.55
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "短中心线超出可见轮廓线。"
+  suggestion: "短中心线不应超出可见轮廓线，请将超出部分截去，使其与轮廓线平齐。"
+  teaching_hint: "短中心线和一般中心线的延伸要求是否相同？短中心线应如何处理？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图1-4 短中心线常见错误示例。"
+
+- rule_id: ATLAS_LINE_CENTER_EXTEND_001
+  name: 一般中心线外伸检查
+  v2_error_category: LINE_TYPE_ERROR
+  source_case_id: ATLAS_LINE_CENTER_EXTEND_001
+  enabled: true
+  priority: P0
+  required_agents: [GeometryAgent, StructureAgent]
+  required_v2_fields:
+    geometry: [lines, line_types, contours]
+    structure: [view_regions]
+  check_type: geometry_threshold
+  params:
+    min_extension_ratio: 0.005
+    min_extension_mm_if_scale_known: 3
+    max_extension_mm_if_scale_known: 5
+    confidence_confirmed: 0.82
+    confidence_suspected: 0.55
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "一般中心线未向可见轮廓外充分延伸。"
+  suggestion: "请将中心线向可见轮廓两端外延伸约3mm～5mm，并保持两端长度基本一致。"
+  teaching_hint: "普通中心线和短中心线的画法要求是否相同？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图1-5 中心线常见错误示例。"
+
+- rule_id: ATLAS_LINE_COARSE_USAGE_001
+  name: 粗点画线/粗虚线使用场景检查
+  v2_error_category: LINE_TYPE_ERROR
+  source_case_id: ATLAS_LINE_COARSE_USAGE_001
+  enabled: true
+  priority: P0
+  required_agents: [GeometryAgent, StructureAgent]
+  required_v2_fields:
+    geometry: [lines, line_types, line_widths]
+    structure: [view_regions]
+  check_type: context_line_usage
+  params:
+    target_line_types: [coarse_long_dash_dot, coarse_dashed]
+    expected_contexts: [limit_region, surface_treatment]
+    confidence_confirmed: 0.80
+    confidence_suspected: 0.50
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "粗点画线或粗虚线使用场景不正确。"
+  suggestion: "此处应使用粗点画线（限定表示区域）或粗虚线（允许表面处理指示），请修正线型。"
+  teaching_hint: "粗点画线和细点画线的用途有何不同？什么场合应使用粗点画线？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图1-6 粗点画线与粗虚线使用示例。"
+
+- rule_id: ATLAS_LINE_BREAK_001
+  name: 断裂画法线型检查
+  v2_error_category: LINE_TYPE_ERROR
+  source_case_id: ATLAS_LINE_BREAK_001
+  enabled: true
+  priority: P1
+  required_agents: [GeometryAgent, StructureAgent]
+  required_v2_fields:
+    geometry: [lines, line_types, contours]
+    structure: [view_regions]
+  check_type: context_line_usage
+  params:
+    break_line_types: [wave, double_dash_dot, zigzag]
+    material_line_map:
+      metal: [wave, double_dash_dot]
+      wood: [zigzag]
+      nonmetal: [wave]
+    confidence_confirmed: 0.75
+    confidence_suspected: 0.50
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "断裂边界线型选择错误。"
+  suggestion: "请根据材料类型选用正确的断裂线型（金属用波浪线/双点画线，木材用锯齿形线）。"
+  teaching_hint: "不同材料断裂边界的线型是否相同？金属件和木材的断裂线型有何区别？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图1-1/1-2/1-3 断裂画法示例。"
+
+- rule_id: ATLAS_BEND_LINE_001
+  name: 弯折线画法检查
+  v2_error_category: LINE_TYPE_ERROR
+  source_case_id: ATLAS_BEND_LINE_001
+  enabled: true
+  priority: P1
+  required_agents: [GeometryAgent, StructureAgent]
+  required_v2_fields:
+    geometry: [lines, line_types, contours]
+    structure: [view_regions]
+  check_type: geometry_threshold
+  params:
+    expected_line_type: thin_solid
+    min_extension_mm_if_scale_known: 2
+    max_extension_mm_if_scale_known: 5
+    confidence_confirmed: 0.78
+    confidence_suspected: 0.50
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "弯折线画法错误。"
+  suggestion: "弯折线应采用细实线绘制，且两端应超出轮廓线2mm～5mm，请修正。"
+  teaching_hint: "弯折线应使用什么线型？弯折线是否需要超出轮廓线？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图1-7/1-8 弯折线画法示例。"
+
+- rule_id: ATLAS_VIEW_LOCAL_DIRECTION_001
+  name: 局部视图/向视图投影方向标注检查
+  v2_error_category: VIEW_ERROR
+  source_case_id: ATLAS_VIEW_LOCAL_DIRECTION_001
+  enabled: true
+  priority: P0
+  required_agents: [GeometryAgent, StructureAgent, TextAgent]
+  required_v2_fields:
+    geometry: [lines, arrows]
+    structure: [view_regions]
+    text: [labels, annotations]
+  check_type: view_heuristic
+  params:
+    require_arrow: true
+    require_letter: true
+    require_view_name: true
+    confidence_confirmed: 0.82
+    confidence_suspected: 0.55
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "局部视图/向视图投影方向标注缺失或错误。"
+  suggestion: "请用箭头指明投影方向并在视图上方标注对应字母。"
+  teaching_hint: "局部视图和向视图的投影方向如何标注？箭头和字母的对应关系是什么？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图2-1/2-2 局部视图与向视图标注示例。"
+
+- rule_id: ATLAS_VIEW_LOCAL_THIRD_ANGLE_001
+  name: 第三角画法局部视图配置检查
+  v2_error_category: VIEW_ERROR
+  source_case_id: ATLAS_VIEW_LOCAL_THIRD_ANGLE_001
+  enabled: true
+  priority: P1
+  required_agents: [GeometryAgent, StructureAgent, TextAgent]
+  required_v2_fields:
+    geometry: [lines, arrows]
+    structure: [view_regions, view_layout]
+    text: [labels, title_block]
+  check_type: view_heuristic
+  params:
+    require_third_angle_symbol: true
+    view_position_check: true
+    confidence_confirmed: 0.78
+    confidence_suspected: 0.50
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "第三角画法局部视图配置位置错误或缺少标识。"
+  suggestion: "请将视图放在对应投影方向位置，并确保标题栏中有第三角画法标识。"
+  teaching_hint: "第三角画法与第一角画法的局部视图配置位置有何不同？是否需要标注识别符号？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图2-3 第三角画法局部视图示例。"
+
+- rule_id: ATLAS_VIEW_DETAIL_RATIO_001
+  name: 局部放大图比例标注检查
+  v2_error_category: VIEW_ERROR
+  source_case_id: ATLAS_VIEW_DETAIL_RATIO_001
+  enabled: true
+  priority: P1
+  required_agents: [TextAgent, StructureAgent]
+  required_v2_fields:
+    structure: [view_regions, detail_views]
+    text: [labels, annotations, scale_text]
+  check_type: ocr_regex
+  params:
+    scale_pattern: "\\d+[:]\\d+"
+    require_above_view: true
+    ratio_vs_original_check: true
+    confidence_confirmed: 0.80
+    confidence_suspected: 0.55
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "局部放大图比例标注错误。"
+  suggestion: "局部放大图比例应为放大图与原图对应要素的线性尺寸之比，请在放大图上方正确标注。"
+  teaching_hint: "局部放大图的比例是相对于原图还是实际物体？比例标注应放在哪里？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图2-6 局部放大图比例标注示例。"
+
+- rule_id: ATLAS_DIM_SLOT_001
+  name: 腰形孔标注方式检查
+  v2_error_category: DIMENSION_ERROR
+  source_case_id: ATLAS_DIM_SLOT_001
+  enabled: true
+  priority: P0
+  required_agents: [GeometryAgent, TextAgent]
+  required_v2_fields:
+    geometry: [contours, arcs, lines]
+    text: [dimensions, dimension_text]
+  check_type: ocr_regex
+  params:
+    slot_shape_detection: true
+    require_center_distance: true
+    forbid_total_length: true
+    confidence_confirmed: 0.82
+    confidence_suspected: 0.55
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "腰形孔标注方式错误。"
+  suggestion: "腰形孔应标注两圆弧中心距和宽度，而非总长和宽度，请修正。"
+  teaching_hint: "腰形孔应标注总长还是圆弧中心距？为什么？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图3-11 腰形孔标注示例。"
+
+- rule_id: ATLAS_DIM_CHAMFER_001
+  name: 倒角标注格式检查
+  v2_error_category: DIMENSION_ERROR
+  source_case_id: ATLAS_DIM_CHAMFER_001
+  enabled: true
+  priority: P0
+  required_agents: [GeometryAgent, TextAgent]
+  required_v2_fields:
+    geometry: [contours, chamfers]
+    text: [dimensions, dimension_text]
+  check_type: ocr_regex
+  params:
+    chamfer_45_pattern: "C\\d+\\.?\\d*"
+    chamfer_non45_pattern: "\\d+°×\\d+"
+    confidence_confirmed: 0.85
+    confidence_suspected: 0.55
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "倒角标注格式错误。"
+  suggestion: "45°倒角应使用C加宽度（如C2）标注，非45°倒角应分别标注角度和宽度。"
+  teaching_hint: "45°倒角和非45°倒角的标注格式有何不同？C2表示什么含义？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图3-12/3-13 倒角标注示例。"
+
+- rule_id: ATLAS_DIM_EQS_001
+  name: 均布孔EQS标注检查
+  v2_error_category: DIMENSION_ERROR
+  source_case_id: ATLAS_DIM_EQS_001
+  enabled: true
+  priority: P0
+  required_agents: [GeometryAgent, TextAgent]
+  required_v2_fields:
+    geometry: [circles, arcs, hole_patterns]
+    text: [dimensions, dimension_text]
+  check_type: ocr_regex
+  params:
+    eqs_pattern: "EQS"
+    uniform_hole_detection: true
+    require_eqs_annotation: true
+    confidence_confirmed: 0.80
+    confidence_suspected: 0.50
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "均布孔缺少EQS标注。"
+  suggestion: "请在孔的分布角度尺寸后加注EQS字样。"
+  teaching_hint: "均匀分布的孔是否需要标注EQS？EQS的含义是什么？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图3-14 均布孔EQS标注示例。"
+
+- rule_id: ATLAS_DIM_HOLE_GROUP_001
+  name: 成规律孔组标注方式检查
+  v2_error_category: DIMENSION_ERROR
+  source_case_id: ATLAS_DIM_HOLE_GROUP_001
+  enabled: true
+  priority: P0
+  required_agents: [GeometryAgent, TextAgent]
+  required_v2_fields:
+    geometry: [circles, hole_patterns, grid_points]
+    text: [dimensions, dimension_text]
+  check_type: hole_group
+  params:
+    pattern_detection: true
+    require_simplified_annotation: true
+    max_individual_annotations: 2
+    confidence_confirmed: 0.78
+    confidence_suspected: 0.50
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "成规律分布孔组标注方式错误。"
+  suggestion: "应采用简化标注方式，标注间距和分布规律，而非逐一标注。"
+  teaching_hint: "成规律分布的孔组是否需要逐一标注？如何简化标注？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图3-16/3-17 成规律孔组标注示例。"
+
+- rule_id: ATLAS_DIM_REFERENCE_001
+  name: 参考尺寸括号检查
+  v2_error_category: DIMENSION_ERROR
+  source_case_id: ATLAS_DIM_REFERENCE_001
+  enabled: true
+  priority: P1
+  required_agents: [TextAgent, GeometryAgent]
+  required_v2_fields:
+    geometry: [contours, dimensions]
+    text: [dimensions, dimension_text]
+  check_type: ocr_regex
+  params:
+    reference_dim_pattern: "\\(\\d+\\.?\\d*\\)"
+    require_parentheses: true
+    confidence_confirmed: 0.80
+    confidence_suspected: 0.55
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "参考尺寸未加括号。"
+  suggestion: "请将该尺寸数字加上圆括号以表示其为参考尺寸。"
+  teaching_hint: "参考尺寸和加工尺寸在标注上有何区别？参考尺寸为什么要加括号？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图3-20 参考尺寸标注示例。"
+
+- rule_id: ATLAS_TITLE_SCALE_STANDARD_001
+  name: 标题栏比例标注标准检查
+  v2_error_category: TITLE_BLOCK_ERROR
+  source_case_id: ATLAS_TITLE_SCALE_STANDARD_001
+  enabled: true
+  priority: P0
+  required_agents: [TextAgent, StructureAgent]
+  required_v2_fields:
+    structure: [title_block]
+    text: [title_block_text, scale_text]
+  check_type: title_block
+  params:
+    scale_pattern: "\\d+[:]\\d+"
+    standard_scales: ["1:1", "1:2", "1:5", "1:10", "2:1", "5:1", "10:1"]
+    forbid_slash_format: true
+    confidence_confirmed: 0.88
+    confidence_suspected: 0.60
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "标题栏中比例标注不符合标准。"
+  suggestion: "请按标准格式填写比例（如1:1、1:2、2:1等）。"
+  teaching_hint: "标题栏中比例的标准格式是什么？能否写成1/2或2/1？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图7-5 标题栏比例标注示例。"
+
+- rule_id: ATLAS_ROUGH_ALL_001
+  name: 粗糙度"全部"标注方式检查
+  v2_error_category: ROUGHNESS_ERROR
+  source_case_id: ATLAS_ROUGH_ALL_001
+  enabled: true
+  priority: P0
+  required_agents: [TextAgent, GeometryAgent]
+  required_v2_fields:
+    geometry: [roughness_symbols]
+    text: [roughness_annotations, roughness_values]
+  check_type: roughness
+  params:
+    require_all_keyword: true
+    require_single_annotation: true
+    require_upper_right_position: true
+    confidence_confirmed: 0.82
+    confidence_suspected: 0.55
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "粗糙度"全部"标注方式错误。"
+  suggestion: "应在图样右上角统一标注一个粗糙度符号并加注"全部"字样，无需逐一标注。"
+  teaching_hint: "当所有表面粗糙度相同时，是否需要在每个表面都标注？应如何简化？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图8-4 粗糙度"全部"标注示例。"
+
+- rule_id: ATLAS_ROUGH_QIYU_001
+  name: 粗糙度"其余"标注方式检查
+  v2_error_category: ROUGHNESS_ERROR
+  source_case_id: ATLAS_ROUGH_QIYU_001
+  enabled: true
+  priority: P1
+  required_agents: [TextAgent, GeometryAgent]
+  required_v2_fields:
+    geometry: [roughness_symbols]
+    text: [roughness_annotations, roughness_values]
+  check_type: roughness
+  params:
+    require_qiyu_keyword: true
+    require_upper_right_position: true
+    allow_individual_different: true
+    confidence_confirmed: 0.80
+    confidence_suspected: 0.55
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "粗糙度"其余"标注方式错误。"
+  suggestion: "应在图样右上角统一标注并加注"其余"字样，个别不同要求的表面单独标注。"
+  teaching_hint: ""全部"和"其余"的粗糙度标注适用条件有何不同？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图8-5 粗糙度"其余"标注示例。"
+
+- rule_id: ATLAS_DIM_NUMBER_POS_001
+  name: 尺寸数字位置检查
+  v2_error_category: DIMENSION_ERROR
+  source_case_id: ATLAS_DIM_NUMBER_POS_001
+  enabled: true
+  priority: P1
+  required_agents: [TextAgent, GeometryAgent]
+  required_v2_fields:
+    geometry: [lines, dimensions, dimension_lines]
+    text: [dimensions, dimension_text, text_orientation]
+  check_type: ocr_regex
+  params:
+    horizontal_text_up: true
+    vertical_text_left: true
+    confidence_confirmed: 0.75
+    confidence_suspected: 0.50
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "尺寸数字位置放置错误。"
+  suggestion: "请确保水平尺寸字头朝上、垂直尺寸字头朝左、倾斜尺寸字头有朝上趋势。"
+  teaching_hint: "线性尺寸数字在不同方向的尺寸线上，字头朝向有何规则？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图3-1 尺寸数字位置示例。"
+
+- rule_id: ATLAS_DIM_ANGLE_001
+  name: 角度标注检查
+  v2_error_category: DIMENSION_ERROR
+  source_case_id: ATLAS_DIM_ANGLE_001
+  enabled: true
+  priority: P1
+  required_agents: [GeometryAgent, TextAgent]
+  required_v2_fields:
+    geometry: [arcs, lines, angle_dimensions]
+    text: [dimensions, dimension_text]
+  check_type: ocr_regex
+  params:
+    require_arc_dimension_line: true
+    require_horizontal_text: true
+    confidence_confirmed: 0.78
+    confidence_suspected: 0.50
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "角度尺寸标注错误。"
+  suggestion: "尺寸线应为圆弧且圆心在角度顶点，数字一律水平书写。"
+  teaching_hint: "角度尺寸的尺寸线是什么形状？角度数字的书写方向与线性尺寸有何不同？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图3-5 角度标注示例。"
+
+- rule_id: ATLAS_TOLERANCE_FRAME_001
+  name: 形位公差框格检查
+  v2_error_category: TOLERANCE_ERROR
+  source_case_id: ATLAS_TOLERANCE_FRAME_001
+  enabled: true
+  priority: P2
+  required_agents: [TextAgent, GeometryAgent]
+  required_v2_fields:
+    geometry: [tolerance_frames, lines]
+    text: [tolerance_symbols, tolerance_values, datum_letters]
+  check_type: ocr_regex
+  params:
+    frame_order: [symbol, value, datum]
+    require_symbol_first: true
+    confidence_confirmed: 0.75
+    confidence_suspected: 0.50
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "形位公差框格绘制错误。"
+  suggestion: "请按从左到右顺序依次填写：公差项目符号→公差值→基准字母。"
+  teaching_hint: "形位公差框格各格的内容顺序是什么？基准字母应填在第几格？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图4-36 形位公差框格示例。"
+
+- rule_id: ATLAS_WELD_ARROW_001
+  name: 焊缝箭头线指向检查
+  v2_error_category: WELD_ERROR
+  source_case_id: ATLAS_WELD_ARROW_001
+  enabled: true
+  priority: P2
+  required_agents: [GeometryAgent, TextAgent]
+  required_v2_fields:
+    geometry: [lines, arrows, weld_symbols]
+    text: [weld_annotations]
+  check_type: view_heuristic
+  params:
+    require_arrow_to_weld: true
+    arrow_side_vs_other_side: true
+    confidence_confirmed: 0.72
+    confidence_suspected: 0.48
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "焊缝箭头线指向错误。"
+  suggestion: "箭头应指向焊缝所在一侧，请修正箭头方向。"
+  teaching_hint: "焊缝箭头线的指向与基本符号标注位置有什么关系？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图5-1 焊缝箭头线示例。"
+
+- rule_id: ATLAS_SHEET_SELECT_001
+  name: 图幅选择合理性检查
+  v2_error_category: SHEET_ERROR
+  source_case_id: ATLAS_SHEET_SELECT_001
+  enabled: true
+  priority: P2
+  required_agents: [StructureAgent, GeometryAgent]
+  required_v2_fields:
+    structure: [sheet_size, border]
+    geometry: [all_elements]
+  check_type: view_heuristic
+  params:
+    min_utilization_ratio: 0.70
+    max_utilization_ratio: 0.90
+    prefer_standard_sizes: true
+    confidence_confirmed: 0.70
+    confidence_suspected: 0.45
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "图幅选择不合理。"
+  suggestion: "请根据机件大小和复杂程度选择合适的幅面，确保图面利用率在70%～90%之间。"
+  teaching_hint: "图幅选择的原则是什么？图面利用率过低或过高有什么问题？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图6-1 图幅选择示例。"
+
+- rule_id: ATLAS_STAGE_MARK_001
+  name: 阶段标记填写检查
+  v2_error_category: TITLE_BLOCK_ERROR
+  source_case_id: ATLAS_STAGE_MARK_001
+  enabled: true
+  priority: P2
+  required_agents: [TextAgent, StructureAgent]
+  required_v2_fields:
+    structure: [title_block]
+    text: [title_block_text, stage_mark]
+  check_type: title_block
+  params:
+    valid_marks: ["S", "A", "B"]
+    require_mark: true
+    confidence_confirmed: 0.85
+    confidence_suspected: 0.55
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "阶段标记填写错误。"
+  suggestion: "请根据实际设计阶段选择正确标记：S（样机试制）、A（小批试制）、B（正式生产）。"
+  teaching_hint: "阶段标记S、A、B分别代表什么含义？如何根据设计阶段正确选择？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图7-3 阶段标记示例。"
+
+- rule_id: ATLAS_ROUGH_SYMBOL_DIR_001
+  name: 粗糙度符号方向检查
+  v2_error_category: ROUGHNESS_ERROR
+  source_case_id: ATLAS_ROUGH_SYMBOL_DIR_001
+  enabled: true
+  priority: P2
+  required_agents: [GeometryAgent, TextAgent]
+  required_v2_fields:
+    geometry: [roughness_symbols, contours]
+    text: [roughness_annotations]
+  check_type: roughness
+  params:
+    require_tip_to_surface: true
+    require_from_outside: true
+    confidence_confirmed: 0.75
+    confidence_suspected: 0.48
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "表面粗糙度符号方向标注错误。"
+  suggestion: "符号尖端应从材料外部指向被注表面，请修正符号方向。"
+  teaching_hint: "粗糙度符号的尖端应指向哪个方向？在不同位置的表面上符号方向是否相同？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图8-1 粗糙度符号方向示例。"
+
+- rule_id: ATLAS_DIM_TOLERANCE_001
+  name: 尺寸公差标注格式检查
+  v2_error_category: TOLERANCE_ERROR
+  source_case_id: ATLAS_DIM_TOLERANCE_001
+  enabled: true
+  priority: P2
+  required_agents: [TextAgent, GeometryAgent]
+  required_v2_fields:
+    geometry: [dimensions, tolerance_frames]
+    text: [dimensions, dimension_text, tolerance_values]
+  check_type: ocr_regex
+  params:
+    deviation_font_ratio: 0.7
+    require_smaller_font: true
+    valid_formats: [tolerance_code, limit_deviation, both]
+    confidence_confirmed: 0.75
+    confidence_suspected: 0.50
+  output_policy:
+    high_confidence: confirmed_error
+    medium_confidence: suspected_issue
+    low_confidence: suggestion
+  message: "尺寸公差标注格式错误。"
+  suggestion: "请按标准格式标注，上下偏差数字应比基本尺寸数字小一号。"
+  teaching_hint: "尺寸公差的三种标注形式分别是什么？上下偏差数字与基本尺寸数字的字号有何关系？"
+  source_display:
+    type: atlas_reference
+    text: "参考图册：图4-10 尺寸公差标注示例。"

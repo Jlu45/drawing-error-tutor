@@ -24,3 +24,17 @@ RL_EPSILON_DECAY = 0.995
 FLASK_HOST = os.environ.get('FLASK_HOST', '0.0.0.0')
 FLASK_PORT = int(os.environ.get('FLASK_PORT', 5000))
 FLASK_DEBUG = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+
+VLM_MODEL = os.environ.get('VLM_MODEL', 'qwen-vl-max')
+VLM_JUDGE_ENABLED = os.environ.get('VLM_JUDGE_ENABLED', 'true').lower() == 'true'
+EXPERIENCE_STORE_DIR = 'data/experience_store'
+ENABLE_ATLAS_PACK = os.environ.get('ENABLE_ATLAS_PACK', 'true').lower() == 'true'
+ATLAS_RULE_MODE = os.environ.get('ATLAS_RULE_MODE', 'safe')
+ATLAS_CASES_PATH = 'data/atlas/atlas_cases.jsonl'
+ATLAS_RULES_PATH = 'data/atlas/atlas_rules.yaml'
+ATLAS_EVAL_PATH = 'data/atlas/atlas_eval_cases.jsonl'
+ATLAS_MAX_CONTEXT_CASES = 3
+ATLAS_SHOW_REFERENCE_IN_UI = True
+ATLAS_ENABLE_VLM_FEWSHOT = True
+ROLLBACK_MAX_RETRIES = {'ocr': 2, 'geometry': 2, 'structure': 1, 'rule_check': 1, 'llm': 1}
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
